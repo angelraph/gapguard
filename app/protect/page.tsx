@@ -19,6 +19,8 @@ import type { SettlementResult } from "@/lib/meteora/settlement";
  * honestly says so instead of pretending to work.
  */
 const POOL_ADDRESS = process.env.NEXT_PUBLIC_PROTECTION_POOL;
+const NETWORK = process.env.NEXT_PUBLIC_NETWORK ?? "mainnet-beta";
+const IS_DEVNET = NETWORK === "devnet";
 const USDC_DECIMALS = 6;
 
 export default function ProtectPage() {
@@ -119,6 +121,16 @@ export default function ProtectPage() {
           Pay a small fee now to protect one stock over one weekend. If its
           price jumps too much, you get paid back.
         </p>
+
+        {POOL_ADDRESS && IS_DEVNET && (
+          <div className="mb-4 border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+            This pool runs on Solana&apos;s devnet — a free test network. No
+            real money is involved: the wallet you connect needs to be
+            switched to devnet, and any tokens used here have no real value.
+            This exists to prove the mechanism works before a real, mainnet
+            pool is funded.
+          </div>
+        )}
 
         <div className="border border-border bg-bg-card p-6 sm:p-8">
           <h2 className="text-2xl font-semibold">{PROTECTION_MARKET.ticker}</h2>
