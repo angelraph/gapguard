@@ -23,6 +23,32 @@ const NETWORK = process.env.NEXT_PUBLIC_NETWORK ?? "mainnet-beta";
 const IS_DEVNET = NETWORK === "devnet";
 const USDC_DECIMALS = 6;
 
+/** Wallets and wallet-adapter throw raw, often opaque messages ("Unexpected
+ * error", "0x1", etc.) — translate the common ones into something a person
+ * can actually act on, instead of showing that raw text. */
+function friendlyBuyError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("user rejected") || lower.includes("reject")) {
+    return "You declined the transaction in your wallet — nothing was sent.";
+  }
+  if (
+    lower.includes("insufficient") ||
+    lower.includes("0x1") ||
+    lower.includes("unexpected error")
+  ) {
+    return IS_DEVNET
+      ? "Your wallet doesn't have the devnet SOL or the test token this pool needs. This is a devnet test pool — only a small set of test wallets currently hold the token it trades against. Ask for test funds and try again."
+      : "Your wallet doesn't have enough SOL or USDC to complete this purchase.";
+  }
+  if (lower.includes("token account") || lower.includes("could not find account")) {
+    return "Your wallet doesn't hold the token this pool needs yet, so there's nothing to swap from.";
+  }
+
+  return `Something went wrong buying protection (${raw}).`;
+}
+
 export default function ProtectPage() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction, connected } = useWallet();
@@ -98,7 +124,7 @@ export default function ProtectPage() {
       setTxSignature(signature);
       setBuyStatus(null);
     } catch (err) {
-      setBuyError(err instanceof Error ? err.message : "Something went wrong buying protection.");
+      setBuyError(friendlyBuyError(err));
       setBuyStatus(null);
     }
   }
