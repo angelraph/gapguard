@@ -15,7 +15,7 @@ const {
   TokenAuthorityOption,
   TokenDecimal,
   TokenType,
-  buildCurve,
+  buildCurveWithMarketCap,
 } = require("@meteora-ag/dynamic-bonding-curve-sdk");
 const { Connection, Keypair, PublicKey, sendAndConfirmTransaction } = require("@solana/web3.js");
 const fs = require("fs");
@@ -45,7 +45,7 @@ async function main() {
   console.log("Protection token mint:", baseMintKeypair.publicKey.toBase58());
   console.log("Quote mint (mock USDC):", mockUsdcMint);
 
-  const curveConfig = buildCurve({
+  const curveConfig = buildCurveWithMarketCap({
     token: {
       tokenType: TokenType.SPLToken,
       tokenBaseDecimal: TokenDecimal.SIX,
@@ -75,11 +75,14 @@ async function main() {
       migrationFeeOption: MigrationFeeOption.FixedBps100,
       migrationFee: { feePercentage: 0, creatorFeePercentage: 0 },
     },
+    // Must sum to 100, and the protocol requires at least 10% permanently
+    // locked at day 1 (an anti-rug-pull rule enforced regardless of
+    // whether migration ever actually happens) — confirmed by testing.
     liquidityDistribution: {
       partnerLiquidityPercentage: 0,
       partnerPermanentLockedLiquidityPercentage: 0,
-      creatorPermanentLockedLiquidityPercentage: 0,
-      creatorLiquidityPercentage: 0,
+      creatorPermanentLockedLiquidityPercentage: 10,
+      creatorLiquidityPercentage: 90,
     },
     lockedVesting: {
       totalLockedVestingAmount: 0,
@@ -89,8 +92,17 @@ async function main() {
       cliffDurationFromMigrationTime: 0,
     },
     activationType: ActivationType.Timestamp,
-    percentageSupplyOnMigration: 1,
-    migrationQuoteThreshold: 1_000_000_000_000, // effectively unreachable
+    // Market-cap-based curve instead of buildCurve()'s raw
+    // migrationQuoteThreshold: that raw number gets scaled internally in
+    // an undocumented way tied to totalTokenSupply, and two different
+    // "very high" values both threw "Not enough liquidity" trying to
+    // guess it. initialMarketCap/migrationMarketCap are self-consistent
+    // by construction — the SDK derives the curve from them directly.
+    initialMarketCap: 1_000, // $1,000 starting valuation for 1,000,000 tokens
+    migrationMarketCap: 1_000_000, // $1M — a 1000x ratio; still nowhere
+    // near reachable by a single demo market's premium volume, and a much
+    // less extreme ratio than 50,000x, which the curve math couldn't
+    // represent (confirmed by testing).
   });
 
   const tx = await client.partner.createConfigAndPool({
@@ -100,7 +112,9 @@ async function main() {
     leftoverReceiver: payer.publicKey,
     quoteMint: new PublicKey(mockUsdcMint),
     preCreatePoolParam: {
-      name: "TSLA Gap Protection (devnet test)",
+      // Metaplex token metadata caps `name` at 32 bytes — confirmed by
+      // testing (33 chars failed with "Name too long").
+      name: "TSLA Gap Protection (devnet)",
       symbol: "TSLAGAP",
       uri: "",
       poolCreator: payer.publicKey,

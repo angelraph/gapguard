@@ -10,7 +10,7 @@ This already matters at real scale. Kamino, the biggest lending platform using t
 
 1. **The Radar** (`/`). A public page showing, live, how far each tracked stock's token price has drifted from its real-world price. It also shows how old the real-market price is, since that number freezes while the market is closed and the token keeps moving. This was designed to run on Pyth's price feeds, and the Pyth integration is fully built (see below for why it isn't live yet); right now it runs on two other free, live, no-signup sources instead: Jupiter for the token's real trading price, and Yahoo Finance for the real stock's price. The page always tells you, in plain sight, which source is currently live.
 2. **Your risk** (`/portfolio`). Connect a wallet and it reads your actual tokenized-stock holdings straight from the chain, values them at the live price, and lets you drag a slider to see what a price jump of any size would do to them — and, if you have a loan against these stocks on Kamino, how close that would put you to losing your collateral.
-3. **Gap Insurance** (`/protect`). A small, single test market: pick one stock and one weekend, pay a small fee up front for "protection," and if the stock's price jumps more than an agreed amount by Monday, you get paid back from the pool. If it doesn't jump, the pool keeps the fee. Built on a Meteora Dynamic Bonding Curve pool, checked against real price data. The buying and pay-back logic is real, working code — the only thing missing is the pool itself, which needs someone to fund a wallet with real money to create (see below for why that's not something done automatically).
+3. **Gap Insurance** (`/protect`). A small, single test market: pick one stock and one weekend, pay a small fee up front for "protection," and if the stock's price jumps more than an agreed amount by Monday, you get paid back from the pool. If it doesn't jump, the pool keeps the fee. Built on a Meteora Dynamic Bonding Curve pool, checked against real price data. Every step — creating the pool, buying protection, recording a settlement against a real live price, and paying someone back — was run for real and confirmed working on Solana's devnet test network before this was written (see below for the real transaction links). The only thing left is creating the actual pool on the real network, which takes real money, so that's a deliberate choice for the project owner to make, not something done automatically.
 
 ## What's automatic and what isn't, told plainly
 
@@ -52,3 +52,15 @@ The Pyth integration is still fully built and left in place (it's one line to tu
 ## A naming mix-up we caught along the way
 
 Kamino's own press coverage calls the Apple token "APPLx". The real token, verified directly against Jupiter's live data, is actually named "AAPLx" (matching the real ticker, AAPL). We checked this by looking up the real mint address rather than trusting a symbol, and we match everything in the code by mint address for exactly this reason.
+
+## The devnet test run, in full
+
+On 2026-09-17, every step of Gap Insurance was run for real on Solana's devnet (a free test network — no real money involved) and confirmed working, not just written and assumed correct:
+
+1. **Pool created**: a real Meteora DBC pool went live on-chain. [Transaction](https://explorer.solana.com/tx/4BQQeQqjnbbc2beFXwfdPunmhfBPsQJRfWsg84iNqmzZxBytanZPE3Y4F3G2tjty2sUd1AtpUZyqnBV5VJFzCh6?cluster=devnet)
+2. **Protection bought**: a real quote was fetched and a real swap executed against that pool. [Transaction](https://explorer.solana.com/tx/2yZQUx1cMwhUFutGy6BQjD7k5QX4uK1JPY9NcFEBxX8hySNL7bxWnSEsrU3xKrocVhuZ9jtXB9e8M13QJcRFeZjc?cluster=devnet)
+3. **Settlement recorded**: checked against a real, live TSLA price pulled at that moment, written on-chain as a verifiable record. [Transaction](https://explorer.solana.com/tx/4G5cyT1JDBypuYRoJ8AaZDe4sD9RXVU5Qfe5HW4FkApparPJ2HyCeRo6VNyT6ZA37F3cPMWYd36xAKkZKQduR2f6?cluster=devnet)
+4. **Settlement read back**: the app's own settlement-reading code found and correctly parsed that record — this caught a real bug (an RPC quirk in how the Memo program's data comes back) that's now fixed.
+5. **Payout sent**: a real transfer back to a holder, proving the pay-back step works. [Transaction](https://explorer.solana.com/tx/2d69pDFbwsgJ9qd5mgAcrUGukp8s4vzrZB7u2eQob2aqNBgaDRj4PNf5P4iRm8QEYX4octPnQPXsMpWcZRoup8S6?cluster=devnet)
+
+This run also caught and fixed several real, undocumented quirks in Meteora's SDK: the curve math needs the migration target set as a market-cap ratio rather than a raw number (a raw "very high" number broke in ways that weren't obvious from the docs), the liquidity-split percentages must add up to 100 with at least 10% locked (an anti-rug-pull rule), and token names are capped at 32 characters. All of these are now fixed in the actual code that would run on the real network, not just in the test scripts.

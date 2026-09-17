@@ -3,31 +3,32 @@
  *
  * Run with: npx tsx scripts/create-dbc-pool.ts
  *
- * Verified on 2026-09-16 against the INSTALLED
- * `@meteora-ag/dynamic-bonding-curve-sdk` types
- * (node_modules/@meteora-ag/dynamic-bonding-curve-sdk/dist/index.d.ts) —
- * this is meaningfully different from the SDK's own docs.md prose, which
- * undersells how structured `buildCurve`'s params are. Specifically:
+ * VERIFIED WORKING on devnet on 2026-09-17 (see scripts/devnet/create-pool.js,
+ * which uses this exact same config) — not just type-checked. Real pool
+ * created, real transaction confirmed. This mainnet version was updated to
+ * match every fix found during that dry run:
  *  - `DynamicBondingCurveClient` takes a classic `@solana/web3.js`
  *    `Connection` (unlike klend-sdk, which needs `@solana/kit`'s `Rpc` —
  *    see lib/kamino/client.ts for that split).
- *  - To control `migrationQuoteThreshold` directly (so it's set
- *    unreachably high and the pool never graduates mid-demo), use
- *    `buildCurve()` — NOT `buildCurveWithMarketCap()`, which computes the
- *    threshold from a market-cap target instead of taking it directly.
- *  - `MigrationConfig` has no plain "disable migration" flag; the actual
- *    lever is `migrationQuoteThreshold` being unreachable, combined with
- *    `MigrationOption.MET_DAMM_V2` (required — `MET_DAMM` is deprecated
- *    for new configs) and a `MigrationFeeOption` (arbitrary since it's
- *    never reached).
+ *  - `buildCurveWithMarketCap()`, not `buildCurve()` — the latter's raw
+ *    `migrationQuoteThreshold` gets scaled internally in an undocumented
+ *    way tied to `totalTokenSupply`; two different "very high" values
+ *    both threw "Not enough liquidity" trying to guess it by hand.
+ *    `initialMarketCap`/`migrationMarketCap` are self-consistent by
+ *    construction. A 50,000x ratio between them also failed the same way
+ *    — 1,000x (see lib/meteora/dbcPool.ts) works.
+ *  - `liquidityDistribution` percentages must sum to 100, and the
+ *    protocol requires at least 10% permanently locked at day 1 (an
+ *    anti-rug-pull rule enforced regardless of whether migration ever
+ *    actually happens) — neither documented in the SDK's types or docs.md.
+ *  - Metaplex token metadata caps `name` at 32 bytes.
  *
- * ⚠️ STILL UNVERIFIED: the exact account list `createConfigAndPool` needs
- * beyond `payer`/`config`/`quoteMint`/`feeClaimer`/`leftoverReceiver`
- * (confirmed present in the type file) — e.g. whether `tokenBadge` is
- * required for USDC specifically. Run this against devnet first
- * (`SOLANA_RPC_URL` pointed at a devnet endpoint) and fix compile/runtime
- * errors before touching mainnet — this is exactly the day-1/day-6 dry run
- * called for in docs/submission.md, not a script to trust blind.
+ * ⚠️ STILL UNVERIFIED for a REAL USDC quote mint specifically: whether
+ * `tokenBadge` is required (the devnet dry run used a plain, freshly
+ * minted SPL token as the quote mint, not real USDC, which may have
+ * different badge/permission requirements — check
+ * https://docs.meteora.ag if this errors on mainnet with something
+ * about a missing token badge).
  */
 
 import {
@@ -40,7 +41,7 @@ import {
   TokenAuthorityOption,
   TokenDecimal,
   TokenType,
-  buildCurve,
+  buildCurveWithMarketCap,
 } from "@meteora-ag/dynamic-bonding-curve-sdk";
 import { Connection, Keypair, sendAndConfirmTransaction } from "@solana/web3.js";
 import { DBC_CONFIG_PARAMS, PROTECTION_MARKET, USDC_MINT } from "../lib/meteora/dbcPool";
@@ -67,13 +68,13 @@ async function main() {
   console.log(`Config: ${configKeypair.publicKey.toBase58()}`);
   console.log(`Protection token mint: ${baseMintKeypair.publicKey.toBase58()}`);
 
-  const curveConfig = buildCurve({
+  const curveConfig = buildCurveWithMarketCap({
     token: {
       tokenType: TokenType.SPLToken,
       tokenBaseDecimal: TokenDecimal.SIX,
       tokenQuoteDecimal: TokenDecimal.SIX, // USDC has 6 decimals.
       tokenAuthorityOption: TokenAuthorityOption.Immutable,
-      totalTokenSupply: 1_000_000, // 1,000,000 protection tokens total supply.
+      totalTokenSupply: DBC_CONFIG_PARAMS.totalTokenSupply,
       leftover: 0,
     },
     fee: {
@@ -98,12 +99,7 @@ async function main() {
       migrationFeeOption: MigrationFeeOption.FixedBps100,
       migrationFee: { feePercentage: 0, creatorFeePercentage: 0 },
     },
-    liquidityDistribution: {
-      partnerLiquidityPercentage: 0,
-      partnerPermanentLockedLiquidityPercentage: 0,
-      creatorPermanentLockedLiquidityPercentage: 0,
-      creatorLiquidityPercentage: 0,
-    },
+    liquidityDistribution: DBC_CONFIG_PARAMS.liquidityDistribution,
     lockedVesting: {
       totalLockedVestingAmount: 0,
       numberOfVestingPeriod: 0,
@@ -112,9 +108,8 @@ async function main() {
       cliffDurationFromMigrationTime: 0,
     },
     activationType: ActivationType.Timestamp,
-    percentageSupplyOnMigration: 1, // minimal — migration should never
-    // actually trigger given the threshold below, but the field is required.
-    migrationQuoteThreshold: DBC_CONFIG_PARAMS.migrationQuoteThreshold,
+    initialMarketCap: DBC_CONFIG_PARAMS.initialMarketCap,
+    migrationMarketCap: DBC_CONFIG_PARAMS.migrationMarketCap,
   });
 
   const tx = await client.partner.createConfigAndPool({
@@ -124,6 +119,7 @@ async function main() {
     leftoverReceiver: payer.publicKey,
     quoteMint: USDC_MINT,
     preCreatePoolParam: {
+      // Metaplex token metadata caps this at 32 bytes.
       name: `${PROTECTION_MARKET.ticker} Gap Protection`,
       symbol: `${PROTECTION_MARKET.ticker}GAP`,
       uri: "",
