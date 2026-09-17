@@ -1,26 +1,54 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --color-bg-primary: #0a0a0b;
+  --color-bg-elevated: #0f0f12;
+  --color-bg-card: #121214;
+  --color-border: #34343d;
+
+  /* Text */
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a9a9b3;
+  --color-text-muted: #8a8a95;
+
+  /* Accents (matching the Stocklana hackathon site's own palette) */
+  --color-solana-green: #14f195;
+  --color-solana-purple: #9945ff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-card: var(--color-bg-card);
+  --color-border: var(--color-border);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-solana-green: var(--color-solana-green);
+  --color-solana-purple: var(--color-solana-purple);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+/* Match the wallet-connect button (third-party component) to our palette. */
+.wallet-adapter-button {
+  background-color: var(--color-solana-purple) !important;
+  border-radius: 0 !important;
+  font-family: var(--font-space-grotesk), system-ui, sans-serif !important;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  background-color: color-mix(in srgb, var(--color-solana-purple) 90%, white) !important;
+}
+
+.wallet-adapter-modal,
+.wallet-adapter-modal-list,
+.wallet-adapter-modal-container .wallet-adapter-button {
+  border-radius: 0 !important;
 }

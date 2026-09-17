@@ -83,10 +83,10 @@ export default function PortfolioPage() {
       : null;
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
-      <header className="border-b border-zinc-800 px-4 py-5 sm:px-10">
+    <div className="flex flex-1 flex-col bg-bg-primary text-text-primary">
+      <header className="border-b border-border px-4 py-5 sm:px-10">
         <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-50">
+          <Link href="/" className="text-sm text-text-secondary hover:text-solana-purple">
             ← GapGuard
           </Link>
           <h1 className="text-lg font-semibold">Your risk</h1>
@@ -94,8 +94,8 @@ export default function PortfolioPage() {
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-10 sm:py-10">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 text-center sm:p-8">
-          <p className="mb-4 text-zinc-400">
+        <div className="border border-border bg-bg-card p-6 text-center sm:p-8">
+          <p className="mb-4 text-text-secondary">
             Connect your wallet to see the tokenized stocks you hold, and
             what would happen to them if the price suddenly jumped.
           </p>
@@ -105,17 +105,17 @@ export default function PortfolioPage() {
         </div>
 
         {connected && loading && (
-          <p className="mt-8 text-center text-sm text-zinc-500">Loading your holdings…</p>
+          <p className="mt-8 text-center text-sm text-text-muted">Loading your holdings…</p>
         )}
 
         {connected && error && (
-          <div className="mt-8 rounded-lg border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+          <div className="mt-8 border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
             {error}
           </div>
         )}
 
         {connected && !loading && !error && data && data.holdings.length === 0 && (
-          <p className="mt-8 text-center text-sm text-zinc-500">
+          <p className="mt-8 text-center text-sm text-text-muted">
             This wallet doesn&apos;t hold any of the 8 stocks GapGuard tracks
             right now (Apple, Alphabet, Robinhood, MicroStrategy, Nvidia,
             QQQ, SPY, or Tesla).
@@ -124,9 +124,9 @@ export default function PortfolioPage() {
 
         {connected && !loading && !error && data && data.holdings.length > 0 && (
           <>
-            <div className="mt-8 overflow-x-auto rounded-xl border border-zinc-800">
+            <div className="mt-8 overflow-x-auto border border-border">
               <table className="w-full min-w-[480px] text-sm">
-                <thead className="bg-zinc-900 text-left text-zinc-400">
+                <thead className="bg-bg-elevated text-left text-text-secondary">
                   <tr>
                     <th className="px-4 py-3 font-medium">Stock</th>
                     <th className="px-4 py-3 font-medium">Amount</th>
@@ -135,31 +135,31 @@ export default function PortfolioPage() {
                 </thead>
                 <tbody>
                   {data.holdings.map((h) => (
-                    <tr key={h.mint} className="border-t border-zinc-800">
+                    <tr key={h.mint} className="border-t border-border">
                       <td className="px-4 py-3">
                         <span className="font-medium">{h.ticker}</span>
-                        <div className="text-xs text-zinc-500">{h.name}</div>
+                        <div className="text-xs text-text-muted">{h.name}</div>
                       </td>
-                      <td className="px-4 py-3 tabular-nums">
+                      <td className="px-4 py-3 font-mono tabular-nums">
                         {h.amountTokens.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                       </td>
-                      <td className="px-4 py-3 tabular-nums">{formatUsd(h.valueUsd)}</td>
+                      <td className="px-4 py-3 font-mono tabular-nums">{formatUsd(h.valueUsd)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-zinc-700 font-medium">
+                  <tr className="border-t border-border font-medium">
                     <td className="px-4 py-3" colSpan={2}>
                       Total
                     </td>
-                    <td className="px-4 py-3 tabular-nums">{formatUsd(totalValue)}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums">{formatUsd(totalValue)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
-            <div className="mt-8 rounded-xl border border-zinc-800 p-5 sm:p-6">
-              <label className="block text-sm text-zinc-400">
+            <div className="mt-8 border border-border p-5 sm:p-6">
+              <label className="block text-sm text-text-secondary">
                 If every stock you hold suddenly moved by {gapPct > 0 ? "+" : ""}
                 {gapPct}%, here&apos;s what would happen:
               </label>
@@ -169,20 +169,20 @@ export default function PortfolioPage() {
                 max={20}
                 value={gapPct}
                 onChange={(e) => setGapPct(Number(e.target.value))}
-                className="mt-3 w-full"
+                className="mt-3 w-full accent-solana-purple"
               />
 
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-lg bg-zinc-900/60 p-4">
-                  <p className="text-xs uppercase tracking-wide text-zinc-500">
+                <div className="bg-bg-card p-4">
+                  <p className="text-xs uppercase tracking-wide text-text-muted">
                     Your holdings would be worth
                   </p>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums">
+                  <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">
                     {formatUsd(projectedValue)}
                   </p>
                   <p
-                    className={`mt-1 text-sm tabular-nums ${
-                      projectedChange < 0 ? "text-red-400" : "text-emerald-400"
+                    className={`mt-1 font-mono text-sm tabular-nums ${
+                      projectedChange < 0 ? "text-red-400" : "text-solana-green"
                     }`}
                   >
                     {projectedChange >= 0 ? "+" : ""}
@@ -190,15 +190,15 @@ export default function PortfolioPage() {
                   </p>
                 </div>
 
-                <div className="rounded-lg bg-zinc-900/60 p-4">
-                  <p className="text-xs uppercase tracking-wide text-zinc-500">
+                <div className="bg-bg-card p-4">
+                  <p className="text-xs uppercase tracking-wide text-text-muted">
                     Kamino loan safety
                   </p>
                   {data.obligation && projectedLtv !== null ? (
                     <>
-                      <p className="mt-1 text-2xl font-semibold tabular-nums">
+                      <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">
                         {formatPct(projectedLtv)}
-                        <span className="text-sm font-normal text-zinc-500">
+                        <span className="text-sm font-normal text-text-muted">
                           {" "}
                           of {formatPct(data.obligation.liquidationLtv)} limit
                         </span>
@@ -207,7 +207,7 @@ export default function PortfolioPage() {
                         className={`mt-1 text-sm ${
                           projectedLtv >= data.obligation.liquidationLtv
                             ? "text-red-400"
-                            : "text-zinc-400"
+                            : "text-solana-green"
                         }`}
                       >
                         {projectedLtv >= data.obligation.liquidationLtv
@@ -216,7 +216,7 @@ export default function PortfolioPage() {
                       </p>
                     </>
                   ) : (
-                    <p className="mt-1 text-sm text-zinc-500">
+                    <p className="mt-1 text-sm text-text-muted">
                       You don&apos;t have a loan against these stocks on
                       Kamino, so there&apos;s no liquidation risk to show.
                     </p>

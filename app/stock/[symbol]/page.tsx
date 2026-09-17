@@ -20,10 +20,10 @@ export default async function StockPage({
   if (!stock) notFound();
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
-      <header className="border-b border-zinc-800 px-4 py-5 sm:px-10">
+    <div className="flex flex-1 flex-col bg-bg-primary text-text-primary">
+      <header className="border-b border-border px-4 py-5 sm:px-10">
         <div className="mx-auto flex max-w-3xl flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-50">
+          <Link href="/" className="text-sm text-text-secondary hover:text-solana-purple">
             ← GapGuard
           </Link>
           <h1 className="text-lg font-semibold">
@@ -33,13 +33,13 @@ export default async function StockPage({
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-10 sm:py-10">
-        <p className="text-zinc-400">
-          On-chain token: <span className="text-zinc-200">{stock.xstockSymbol}</span>
+        <p className="text-text-secondary">
+          On-chain token: <span className="font-mono text-text-primary">{stock.xstockSymbol}</span>
         </p>
-        <div className="mt-6 rounded-lg border border-dashed border-zinc-700 p-4 text-sm text-zinc-500">
+        <div className="mt-6 border border-dashed border-border p-4 text-sm text-text-muted">
           A price history chart for this stock is coming soon. For live
           numbers right now, go back to the{" "}
-          <Link href="/" className="underline">
+          <Link href="/" className="text-solana-purple underline">
             home page
           </Link>
           .

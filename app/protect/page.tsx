@@ -104,10 +104,10 @@ export default function ProtectPage() {
   const windowIsOpen = !settlement;
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
-      <header className="border-b border-zinc-800 px-4 py-5 sm:px-10">
+    <div className="flex flex-1 flex-col bg-bg-primary text-text-primary">
+      <header className="border-b border-border px-4 py-5 sm:px-10">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-50">
+          <Link href="/" className="text-sm text-text-secondary hover:text-solana-purple">
             ← GapGuard
           </Link>
           <h1 className="text-lg font-semibold">Gap Insurance</h1>
@@ -115,15 +115,15 @@ export default function ProtectPage() {
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-10 sm:py-10">
-        <p className="mb-6 text-sm text-zinc-400">
+        <p className="mb-6 text-sm text-text-secondary">
           Pay a small fee now to protect one stock over one weekend. If its
           price jumps too much, you get paid back.
         </p>
 
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 sm:p-8">
+        <div className="border border-border bg-bg-card p-6 sm:p-8">
           <h2 className="text-2xl font-semibold">{PROTECTION_MARKET.ticker}</h2>
-          <p className="mt-1 text-zinc-400">{PROTECTION_MARKET.windowLabel}</p>
-          <p className="mt-4 text-sm text-zinc-400">
+          <p className="mt-1 text-text-secondary">{PROTECTION_MARKET.windowLabel}</p>
+          <p className="mt-4 text-sm text-text-secondary">
             You get paid back if {PROTECTION_MARKET.ticker}&apos;s price
             moves more than {(PROTECTION_MARKET.gapThresholdBps / 100).toFixed(1)}%
             between Friday&apos;s close and Monday&apos;s open. This is
@@ -132,7 +132,7 @@ export default function ProtectPage() {
           </p>
 
           {!POOL_ADDRESS && (
-            <div className="mt-6 rounded-lg border border-dashed border-zinc-700 p-4 text-sm text-zinc-500">
+            <div className="mt-6 border border-dashed border-border p-4 text-sm text-text-muted">
               This market isn&apos;t open yet — no protection pool has been
               created on-chain. Buying and getting paid back will work here
               the moment one exists.
@@ -146,7 +146,7 @@ export default function ProtectPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-zinc-400">
+                <label className="block text-sm text-text-secondary">
                   How much do you want to pay for protection? (USDC)
                 </label>
                 <input
@@ -155,11 +155,11 @@ export default function ProtectPage() {
                   step={1}
                   value={usdcAmount}
                   onChange={(e) => setUsdcAmount(Number(e.target.value))}
-                  className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+                  className="mt-2 w-full border border-border bg-bg-elevated px-3 py-2 font-mono text-sm"
                 />
               </div>
 
-              <div className="text-sm text-zinc-400">
+              <div className="text-sm text-text-secondary">
                 {quoteError
                   ? quoteError
                   : quoteTokens !== null
@@ -170,7 +170,7 @@ export default function ProtectPage() {
               <button
                 onClick={handleBuy}
                 disabled={!connected || !quoteTokens || !!buyStatus}
-                className="w-full rounded-lg bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full bg-solana-purple px-4 py-2 text-sm font-medium text-white hover:bg-solana-purple/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {!connected ? "Connect your wallet first" : buyStatus ?? "Buy protection"}
               </button>
@@ -180,7 +180,7 @@ export default function ProtectPage() {
               )}
 
               {txSignature && (
-                <p className="text-sm text-emerald-400">
+                <p className="text-sm text-solana-green">
                   Done!{" "}
                   <a
                     href={`https://explorer.solana.com/tx/${txSignature}`}
@@ -196,17 +196,17 @@ export default function ProtectPage() {
           )}
 
           {POOL_ADDRESS && settlement && (
-            <div className="mt-6 rounded-lg border border-zinc-700 bg-zinc-900/60 p-4">
+            <div className="mt-6 border border-border bg-bg-elevated p-4">
               <p className="text-sm font-medium">
                 This window has settled: {PROTECTION_MARKET.ticker} moved{" "}
                 {settlement.gapBps / 100}% by the time the market reopened.
               </p>
-              <p className="mt-1 text-sm text-zinc-400">
+              <p className="mt-1 text-sm text-text-secondary">
                 {settlement.triggered
                   ? `Protection paid out. Each protection token is worth $${settlement.payoutPerTokenUsd.toFixed(4)}.`
                   : "The move wasn't big enough to trigger a payout."}
               </p>
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="mt-2 font-mono text-xs text-text-muted">
                 Checked against real price data at settlement time: $
                 {settlement.closePrice.toFixed(2)} at close, $
                 {settlement.reopenPrice.toFixed(2)} at reopen.

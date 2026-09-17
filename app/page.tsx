@@ -49,6 +49,21 @@ function friendlyErrorMessage(error: string): string {
   return "GapGuard couldn't load live prices just now. This usually fixes itself in a moment.";
 }
 
+const WALKTHROUGH_STEPS = [
+  {
+    title: "Two versions of the same stock",
+    body: "Stocks such as Apple or Tesla now have an on-chain equivalent that trades on Solana continuously, including nights and weekends.",
+  },
+  {
+    title: "The real market keeps set hours",
+    body: "The underlying shares only trade during normal market hours. While that market is closed, this page tracks any drift between the on-chain price and the last real price.",
+  },
+  {
+    title: "Assess or hedge your exposure",
+    body: "Connect a wallet under “Your risk” to review your own holdings, or use “Gap Insurance” to hedge against a sudden price move for a small fee.",
+  },
+];
+
 export default function RadarPage() {
   const [data, setData] = useState<RadarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,20 +98,20 @@ export default function RadarPage() {
   const closedCount = data?.stocks.filter((s) => s.marketLikelyClosed).length ?? 0;
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
-      <header className="border-b border-zinc-800 px-4 py-5 sm:px-10">
+    <div className="flex flex-1 flex-col bg-bg-primary text-text-primary">
+      <header className="border-b border-border px-4 py-5 sm:px-10">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">GapGuard</h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-text-secondary">
               Watching for price surprises in tokenized stocks on Solana
             </p>
           </div>
-          <nav className="flex gap-4 text-sm text-zinc-400">
-            <Link href="/portfolio" className="hover:text-zinc-50">
+          <nav className="flex gap-5 text-sm text-text-secondary">
+            <Link href="/portfolio" className="hover:text-solana-purple">
               Your risk
             </Link>
-            <Link href="/protect" className="hover:text-zinc-50">
+            <Link href="/protect" className="hover:text-solana-purple">
               Gap Insurance
             </Link>
           </nav>
@@ -104,30 +119,49 @@ export default function RadarPage() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-10 sm:py-10">
+        {/* Brief orientation for first-time visitors — a public landing page
+            needs this, but it should read as documentation, not a tutorial. */}
+        <section className="mb-10 border border-border sm:mb-12">
+          <p className="border-b border-border px-5 py-3 text-xs font-medium uppercase tracking-wide text-text-muted">
+            How this works
+          </p>
+          <div className="divide-y divide-border">
+            {WALKTHROUGH_STEPS.map((step, i) => (
+              <div key={step.title} className="flex gap-4 px-5 py-4">
+                <span className="font-mono text-sm text-text-muted">{i + 1}</span>
+                <div>
+                  <p className="text-sm font-medium text-text-primary">{step.title}</p>
+                  <p className="mt-0.5 text-sm text-text-secondary">{step.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {error && (
-          <div className="mb-8 rounded-lg border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+          <div className="mb-8 border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
             <p>{friendlyErrorMessage(error)}</p>
             <details className="mt-2 text-xs text-amber-300/60">
               <summary className="cursor-pointer">Technical details</summary>
-              <p className="mt-1 break-words">{error}</p>
+              <p className="mt-1 break-words font-mono">{error}</p>
             </details>
           </div>
         )}
 
         {data && (
-          <p className="mb-6 text-xs text-zinc-500">
-            Live price source right now: <span className="text-zinc-300">{SOURCE_LABEL[data.source]}</span>
+          <p className="mb-6 text-xs text-text-muted">
+            Live price source right now: <span className="text-text-secondary">{SOURCE_LABEL[data.source]}</span>
           </p>
         )}
 
         <section className="mb-10 sm:mb-12">
-          <p className="text-sm uppercase tracking-wide text-zinc-500">
+          <p className="text-sm uppercase tracking-wide text-text-muted">
             Money sitting in tokenized stocks on Kamino right now
           </p>
-          <div className="mt-2 text-4xl font-bold tabular-nums sm:text-6xl">
+          <div className="mt-2 font-mono text-4xl font-bold tabular-nums text-solana-green sm:text-6xl">
             {data?.exposure ? formatUsd(data.exposure.total) : "—"}
           </div>
-          <p className="mt-2 max-w-xl text-zinc-400">
+          <p className="mt-2 max-w-xl text-text-secondary">
             {closedCount > 0
               ? `Right now, ${closedCount} of ${data?.stocks.length ?? 0} tracked stocks are trading on Solana while the real stock market is closed. That's exactly when a price surprise can happen with nobody watching.`
               : "This page compares each stock's real-world price to its on-chain token price, live."}
@@ -135,16 +169,16 @@ export default function RadarPage() {
         </section>
 
         <section>
-          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-text-muted">
             Real price vs. on-chain price, live
           </h2>
-          <p className="mb-4 text-sm text-zinc-500">
-            "Gap" is how far apart the two prices are. A bigger gap, or an old
-            "last updated" time, means more risk.
+          <p className="mb-4 text-sm text-text-muted">
+            &quot;Gap&quot; is how far apart the two prices are. A bigger gap, or an old
+            &quot;last updated&quot; time, means more risk.
           </p>
-          <div className="overflow-x-auto rounded-xl border border-zinc-800">
+          <div className="overflow-x-auto border border-border">
             <table className="w-full min-w-[640px] text-sm">
-              <thead className="bg-zinc-900 text-left text-zinc-400">
+              <thead className="bg-bg-elevated text-left text-text-secondary">
                 <tr>
                   <th className="px-4 py-3 font-medium">Stock</th>
                   <th className="px-4 py-3 font-medium">Real price</th>
@@ -158,42 +192,42 @@ export default function RadarPage() {
                 {(data?.stocks ?? []).map((s) => (
                   <tr
                     key={s.ticker}
-                    className="border-t border-zinc-800 hover:bg-zinc-900/50"
+                    className="border-t border-border hover:bg-bg-card"
                   >
                     <td className="px-4 py-3">
                       <Link
                         href={`/stock/${s.ticker}`}
-                        className="font-medium hover:underline"
+                        className="font-medium hover:text-solana-purple hover:underline"
                       >
                         {s.ticker}
                       </Link>
-                      <div className="text-xs text-zinc-500">{s.name}</div>
+                      <div className="text-xs text-text-muted">{s.name}</div>
                     </td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="px-4 py-3 font-mono tabular-nums">
                       ${s.equityPrice.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="px-4 py-3 font-mono tabular-nums">
                       ${s.xstockPrice.toFixed(2)}
                     </td>
                     <td
-                      className={`px-4 py-3 tabular-nums font-medium ${
+                      className={`px-4 py-3 font-mono tabular-nums font-medium ${
                         Math.abs(s.basis) > 0.02
                           ? "text-amber-400"
-                          : "text-zinc-300"
+                          : "text-text-secondary"
                       }`}
                     >
                       {formatPct(s.basis)}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-zinc-400">
+                    <td className="px-4 py-3 font-mono tabular-nums text-text-secondary">
                       {formatStaleness(s.equityStalenessSec)}
                     </td>
                     <td className="px-4 py-3">
                       {s.marketLikelyClosed ? (
-                        <span className="rounded-full bg-red-950 px-2 py-1 text-xs text-red-300">
+                        <span className="bg-red-950 px-2 py-1 text-xs text-red-300">
                           Closed
                         </span>
                       ) : (
-                        <span className="rounded-full bg-emerald-950 px-2 py-1 text-xs text-emerald-300">
+                        <span className="bg-solana-green/10 px-2 py-1 text-xs text-solana-green">
                           Open
                         </span>
                       )}
@@ -202,7 +236,7 @@ export default function RadarPage() {
                 ))}
                 {!data && !error && (
                   <tr>
-                    <td className="px-4 py-6 text-zinc-500" colSpan={6}>
+                    <td className="px-4 py-6 text-text-muted" colSpan={6}>
                       Loading live prices…
                     </td>
                   </tr>
@@ -213,7 +247,7 @@ export default function RadarPage() {
         </section>
       </main>
 
-      <footer className="border-t border-zinc-800 px-4 py-6 text-center text-xs text-zinc-600 sm:px-10">
+      <footer className="border-t border-border px-4 py-6 text-center text-xs text-text-muted sm:px-10">
         {data ? SOURCE_LABEL[data.source] : "Loading price source…"} · Built for the Stocklana hackathon.
       </footer>
     </div>
