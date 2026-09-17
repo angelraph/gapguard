@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import BN from "bn.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from "@solana/spl-token";
 import { PROTECTION_MARKET } from "@/lib/meteora/dbcPool";
-import { getBuyQuote, buildBuyTransaction } from "@/lib/meteora/quote";
+import { getBuyQuote, buildBuyTransaction, getProtectionMint } from "@/lib/meteora/quote";
 import type { SettlementResult } from "@/lib/meteora/settlement";
 
 /**
@@ -66,6 +67,32 @@ export default function ProtectPage() {
   const [txSignature, setTxSignature] = useState<string | null>(null);
   const [settlement, setSettlement] = useState<SettlementResult | null>(null);
   const [faucetStatus, setFaucetStatus] = useState<string | null>(null);
+  const [protectionBalance, setProtectionBalance] = useState<number | null>(null);
+  const PROTECTION_DECIMALS = 6;
+
+  async function refreshProtectionBalance() {
+    if (!POOL_ADDRESS || !publicKey) {
+      setProtectionBalance(null);
+      return;
+    }
+    try {
+      const mint = await getProtectionMint(connection, POOL_ADDRESS);
+      const ata = await getAssociatedTokenAddress(mint, publicKey);
+      const account = await getAccount(connection, ata);
+      setProtectionBalance(Number(account.amount) / 10 ** PROTECTION_DECIMALS);
+    } catch (err) {
+      if (err instanceof TokenAccountNotFoundError) {
+        setProtectionBalance(0);
+      } else {
+        setProtectionBalance(null);
+      }
+    }
+  }
+
+  useEffect(() => {
+    refreshProtectionBalance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicKey, connection]);
 
   useEffect(() => {
     fetch("/api/protect/settlement")
@@ -129,6 +156,7 @@ export default function ProtectPage() {
 
       setTxSignature(signature);
       setBuyStatus(null);
+      refreshProtectionBalance();
     } catch (err) {
       setBuyError(friendlyBuyError(err));
       setBuyStatus(null);
@@ -218,6 +246,25 @@ export default function ProtectPage() {
               <div className="flex justify-center">
                 <WalletMultiButton />
               </div>
+
+              {connected && protectionBalance !== null && (
+                <div className="border border-border bg-bg-elevated p-3 text-center text-sm">
+                  <span className="text-text-secondary">You currently hold </span>
+                  <span className="font-mono font-semibold text-solana-green">
+                    {protectionBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                  </span>
+                  <span className="text-text-secondary">
+                    {" "}
+                    protection token{protectionBalance === 1 ? "" : "s"} for this window.
+                  </span>
+                  {protectionBalance === 0 && (
+                    <p className="mt-1 text-xs text-text-muted">
+                      This updates the moment a buy confirms — no need to check
+                      your wallet&apos;s own token list separately.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {IS_DEVNET && connected && (
                 <div className="border border-dashed border-border p-3 text-center">

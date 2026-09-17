@@ -82,6 +82,17 @@ export async function getBuyQuote(
   };
 }
 
+/** The mint address of the protection token this pool sells — needed to
+ * look up how many a wallet actually holds after buying, since the app
+ * doesn't track this anywhere itself; the chain is the source of truth. */
+export async function getProtectionMint(
+  connection: Connection,
+  poolAddress: string
+): Promise<PublicKey> {
+  const { pool } = await fetchPoolState(connection, poolAddress);
+  return new PublicKey(pool.poolState.baseMint);
+}
+
 /** Builds the unsigned buy transaction. The caller's wallet must sign and
  * send it — this function never holds or moves funds on its own. */
 export async function buildBuyTransaction(
