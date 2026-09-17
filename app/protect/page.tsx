@@ -33,6 +33,11 @@ function friendlyBuyError(err: unknown): string {
   if (lower.includes("user rejected") || lower.includes("reject")) {
     return "You declined the transaction in your wallet — nothing was sent.";
   }
+  if (lower.includes("not been authorized")) {
+    return IS_DEVNET
+      ? "Your wallet is set to Mainnet, but this test pool lives on Devnet. Switch your wallet's network to Devnet (in Phantom: Settings → Developer Settings → Change Network), then try again."
+      : "Your wallet refused this request. Make sure it's unlocked and try again.";
+  }
   if (
     lower.includes("insufficient") ||
     lower.includes("0x1") ||
@@ -60,6 +65,7 @@ export default function ProtectPage() {
   const [buyError, setBuyError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
   const [settlement, setSettlement] = useState<SettlementResult | null>(null);
+  const [faucetStatus, setFaucetStatus] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/protect/settlement")
@@ -130,6 +136,29 @@ export default function ProtectPage() {
   }
 
   const windowIsOpen = !settlement;
+  const explorerUrl = (sig: string) =>
+    `https://explorer.solana.com/tx/${sig}${IS_DEVNET ? "?cluster=devnet" : ""}`;
+  const solscanUrl = (sig: string) =>
+    `https://solscan.io/tx/${sig}${IS_DEVNET ? "?cluster=devnet" : ""}`;
+
+  async function handleGetTestUsdc() {
+    if (!publicKey) return;
+    setFaucetStatus("Sending you 50 test USDC…");
+    try {
+      const res = await fetch("/api/devnet-faucet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: publicKey.toBase58() }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setFaucetStatus(`Sent! ${json.amount} test USDC is in your wallet now.`);
+    } catch (err) {
+      setFaucetStatus(
+        err instanceof Error ? err.message : "Couldn't send test USDC right now."
+      );
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col bg-bg-primary text-text-primary">
@@ -150,11 +179,18 @@ export default function ProtectPage() {
 
         {POOL_ADDRESS && IS_DEVNET && (
           <div className="mb-4 border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
-            This pool runs on Solana&apos;s devnet — a free test network. No
-            real money is involved: the wallet you connect needs to be
-            switched to devnet, and any tokens used here have no real value.
-            This exists to prove the mechanism works before a real, mainnet
-            pool is funded.
+            <p>
+              This pool runs on Solana&apos;s devnet — a free test network.
+              No real money is involved, and any tokens used here have no
+              real value. This exists to prove the mechanism works before a
+              real, mainnet pool is funded.
+            </p>
+            <p className="mt-2">
+              Before you connect: set your wallet&apos;s active network to
+              Devnet. No website can do this for you — it&apos;s a setting
+              inside your wallet, on purpose, for your safety. In Phantom:
+              Settings → Developer Settings → Change Network → Devnet.
+            </p>
           </div>
         )}
 
@@ -182,6 +218,21 @@ export default function ProtectPage() {
               <div className="flex justify-center">
                 <WalletMultiButton />
               </div>
+
+              {IS_DEVNET && connected && (
+                <div className="border border-dashed border-border p-3 text-center">
+                  <button
+                    onClick={handleGetTestUsdc}
+                    disabled={!!faucetStatus && faucetStatus.startsWith("Sending")}
+                    className="text-sm text-solana-purple underline hover:text-solana-purple/80 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Get 50 test USDC for this wallet
+                  </button>
+                  {faucetStatus && (
+                    <p className="mt-1 text-xs text-text-muted">{faucetStatus}</p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm text-text-secondary">
@@ -221,13 +272,30 @@ export default function ProtectPage() {
                 <p className="text-sm text-solana-green">
                   Done!{" "}
                   <a
-                    href={`https://explorer.solana.com/tx/${txSignature}`}
+                    href={explorerUrl(txSignature)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    View the transaction
+                    View on Explorer
                   </a>
+                  {" "}or{" "}
+                  <a
+                    href={solscanUrl(txSignature)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Solscan
+                  </a>
+                  {IS_DEVNET && (
+                    <span className="mt-1 block text-xs text-text-muted">
+                      If Explorer says the browser check failed or the
+                      transaction isn&apos;t found, try Solscan instead, or
+                      wait a few seconds and reload — both are the
+                      indexer catching up, not a failed transaction.
+                    </span>
+                  )}
                 </p>
               )}
             </div>

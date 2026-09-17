@@ -29,6 +29,8 @@ function formatPct(fraction: number): string {
   return `${(fraction * 100).toFixed(1)}%`;
 }
 
+const IS_DEVNET = (process.env.NEXT_PUBLIC_NETWORK ?? "mainnet-beta") === "devnet";
+
 export default function PortfolioPage() {
   const { publicKey, connected } = useWallet();
   const [data, setData] = useState<PortfolioResponse | null>(null);
@@ -115,11 +117,27 @@ export default function PortfolioPage() {
         )}
 
         {connected && !loading && !error && data && data.holdings.length === 0 && (
-          <p className="mt-8 text-center text-sm text-text-muted">
-            This wallet doesn&apos;t hold any of the 8 stocks GapGuard tracks
-            right now (Apple, Alphabet, Robinhood, MicroStrategy, Nvidia,
-            QQQ, SPY, or Tesla).
-          </p>
+          <div className="mt-8 text-center text-sm text-text-muted">
+            <p>
+              This wallet doesn&apos;t hold any of the 8 stocks GapGuard tracks
+              right now (Apple, Alphabet, Robinhood, MicroStrategy, Nvidia,
+              QQQ, SPY, or Tesla).
+            </p>
+            {IS_DEVNET && (
+              <p className="mx-auto mt-3 max-w-md border border-dashed border-border p-3 text-xs">
+                This page always reads real holdings on Solana&apos;s main
+                network — that part isn&apos;t a test. The Gap Insurance
+                devnet test wallet (used for the free test pool on the{" "}
+                <Link href="/protect" className="underline hover:text-solana-purple">
+                  Protect
+                </Link>{" "}
+                page) is a separate, devnet-only address and has never held
+                real stock tokens, so it&apos;s expected to show empty here.
+                To see this page populated, connect a wallet that actually
+                holds one of the 8 tracked stocks on mainnet.
+              </p>
+            )}
+          </div>
         )}
 
         {connected && !loading && !error && data && data.holdings.length > 0 && (
