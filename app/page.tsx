@@ -254,8 +254,8 @@ export default function RadarPage() {
           <p className="mb-8 mt-4 max-w-2xl text-text-secondary">
             A stock like Tesla trades about 32 hours a week. Its token on Solana
             trades all 168. In every hour that isn&apos;t lime below, the real price
-            is frozen while the token keeps moving, and nothing checks it until
-            the market reopens.
+            barely moves (and not at all on weekends) while the token keeps
+            moving, and nothing checks it until the market reopens.
           </p>
           <WeekStrip />
         </section>

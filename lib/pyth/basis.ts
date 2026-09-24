@@ -1,6 +1,7 @@
 import { HermesParsedPrice, toDecimal } from "./client";
 import { CURATED_STOCKS } from "../stocks/curatedList";
 import { PYTH_FEED_IDS } from "./feedIds";
+import { isRegularSessionOpen } from "../marketData/session";
 
 /**
  * The core GapGuard computation: how far has a tokenized stock's on-chain
@@ -24,15 +25,10 @@ export type StockBasis = {
   basis: number;
   /** Seconds since the equity feed last published. */
   equityStalenessSec: number;
-  /** True once staleness implies the traditional market is closed. */
+  /** True outside the regular US session (9:30am to 4pm ET, weekdays). */
   marketLikelyClosed: boolean;
 };
 
-/** Equity feeds publish continuously while NYSE is open; beyond this gap
- * (2x their fastest normal cadence, given generous margin for a slow tick)
- * we treat it as "market closed", independent of Hermes's own market_hours
- * metadata (which is fetched separately and can corroborate this). */
-const STALENESS_THRESHOLD_SEC = 60 * 5;
 
 export function computeBasis(prices: HermesParsedPrice[]): StockBasis[] {
   const byId = new Map(prices.map((p) => [p.id, p]));
@@ -58,7 +54,9 @@ export function computeBasis(prices: HermesParsedPrice[]): StockBasis[] {
       xstockPublishTime: xstock.price.publish_time,
       basis: (xstockPrice - equityPrice) / equityPrice,
       equityStalenessSec,
-      marketLikelyClosed: equityStalenessSec > STALENESS_THRESHOLD_SEC,
+      // Regular session hours, not feed freshness: Pyth keeps publishing
+      // thinner after-hours prices, so a fresh feed does not mean "open".
+      marketLikelyClosed: !isRegularSessionOpen(),
     });
   }
 

@@ -5,7 +5,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: "Why does a gap appear when the market is closed?",
-    a: "The real stock only trades about 32 hours a week. The token on Solana trades all 168. Once the real market closes, its price stops moving while the token keeps going, so they drift apart until the market reopens and the real price jumps to catch up.",
+    a: "The real stock only trades about 32 hours a week. The token on Solana trades all 168. Once regular trading ends, the real price barely moves (thin after-hours trades on weekdays, nothing at all on weekends) while the token keeps going, so they drift apart until the market reopens and the real price jumps to catch up.",
   },
   {
     q: "Where do the prices come from?",

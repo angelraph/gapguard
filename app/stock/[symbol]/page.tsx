@@ -69,7 +69,7 @@ export default async function StockPage({
                 <p className="mt-1 text-xs text-text-muted">
                   Updated {formatStaleness(live.equityStalenessSec)}.{" "}
                   {live.marketLikelyClosed
-                    ? "The real market is closed, so this price is frozen."
+                    ? "Regular trading is closed, so this price barely moves."
                     : "The real market is open."}
                 </p>
               </div>

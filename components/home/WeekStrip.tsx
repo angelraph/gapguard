@@ -109,7 +109,7 @@ export function WeekStrip() {
         <p className="mt-4 text-xs text-text-secondary">
           The white outline is right now. {now.day <= 4 && cellState(now.day, now.hour) !== "closed"
             ? "The real market is open."
-            : "The real market is closed, so the real price is frozen while the token keeps moving."}
+            : "The real market is closed. Its price barely moves (and not at all on weekends) while the token keeps moving."}
         </p>
       )}
     </div>
