@@ -29,11 +29,24 @@ const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const METADATA_URI = "https://gapguard-alpha.vercel.app/tsla-gap-protection.json";
 const MIN_SOL = 0.05;
 
-async function main() {
-  const send = process.argv.includes("--send");
-  const payer = Keypair.fromSecretKey(
+// Uses scripts/mainnet/treasury.key if it exists: a text file holding the
+// private key exactly as Phantom exports it (one line, base58). The key
+// never goes through chat or git. Otherwise falls back to treasury.json.
+function loadPayer() {
+  const keyFile = path.join(__dirname, "treasury.key");
+  if (fs.existsSync(keyFile)) {
+    const bs58 = require("bs58");
+    const decode = (bs58.default || bs58).decode;
+    return Keypair.fromSecretKey(decode(fs.readFileSync(keyFile, "utf-8").trim()));
+  }
+  return Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(fs.readFileSync(path.join(__dirname, "treasury.json"), "utf-8")))
   );
+}
+
+async function main() {
+  const send = process.argv.includes("--send");
+  const payer = loadPayer();
   const connection = new Connection(RPC, "confirmed");
 
   const sol = (await connection.getBalance(payer.publicKey)) / 1e9;

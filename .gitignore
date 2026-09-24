@@ -49,3 +49,4 @@ next-env.d.ts
 
 # mainnet treasury keypair, never commit
 scripts/mainnet/*.json
+scripts/mainnet/*.key
