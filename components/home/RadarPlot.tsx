@@ -105,8 +105,10 @@ export function RadarPlot({ points }: { points: RadarPoint[] }) {
           const y = CY + r * Math.sin(angle);
           const hot = isHot(p);
           const color = hot ? "#ffb547" : p.kind === "stock" ? "#7cc7ff" : "#c58ae6";
-          const lx = CX + (r + 12) * Math.cos(angle);
-          const ly = CY + (r + 12) * Math.sin(angle);
+          // Alternate the label distance so neighbours near the centre don't collide.
+          const labelGap = 12 + (i % 2) * 13;
+          const lx = CX + (r + labelGap) * Math.cos(angle);
+          const ly = CY + (r + labelGap) * Math.sin(angle);
           const anchor = Math.cos(angle) > 0.25 ? "start" : Math.cos(angle) < -0.25 ? "end" : "middle";
           const pct = `${p.gap >= 0 ? "+" : ""}${(p.gap * 100).toFixed(2)}%`;
           return (
