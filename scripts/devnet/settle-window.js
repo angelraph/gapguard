@@ -1,12 +1,11 @@
 /**
  * Settles the real TSLA Gap Insurance window on devnet.
  *
- *   node scripts/devnet/settle-window.js <fridayClosePrice>          dry run
- *   node scripts/devnet/settle-window.js <fridayClosePrice> --send   writes on-chain
+ *   node scripts/devnet/settle-window.js          dry run
+ *   node scripts/devnet/settle-window.js --send   writes on-chain
  *
- * Uses the real Monday price from Yahoo Finance (same free source the live
- * app uses). Refuses to run until the market has actually reopened, so a
- * stale weekend price can never be recorded as the result.
+ * Uses Friday's real close and Monday's real open from Yahoo Finance (the
+ * same free source the live app uses).
  *
  * If the gap crosses the threshold, it also pays each protection token
  * holder their share from the treasury. If not, nobody is paid and the
@@ -38,27 +37,34 @@ const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 const TICKER = "TSLA";
 const WINDOW_LABEL = "Fri Sep 18 4:00pm ET -> Mon Sep 21 9:30am ET";
 const THRESHOLD_BPS = 300;
-const WINDOW_END_UTC_MS = Date.parse("2026-09-21T13:30:00Z"); // 9:30am ET
 const USDC_DECIMALS = 6;
 const TOKEN_DECIMALS = 6;
 
-async function fetchReopenPrice() {
+// The window is Friday's close to Monday's open, so both numbers come from
+// Yahoo's daily bars for those exact dates, not from the price right now
+// (which would be wrong if this runs days after the window ended).
+const CLOSE_DAY = "2026-09-18";
+const OPEN_DAY = "2026-09-21";
+
+async function fetchWindowPrices() {
   const res = await fetch(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${TICKER}?interval=1m&range=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${TICKER}?interval=1d&range=1mo`,
     { headers: { "User-Agent": "Mozilla/5.0" } }
   );
-  const meta = (await res.json()).chart.result[0].meta;
-  return {
-    price: meta.regularMarketPrice,
-    timeMs: meta.regularMarketTime * 1000,
-    state: meta.marketState,
+  const r = (await res.json()).chart.result[0];
+  const q = r.indicators.quote[0];
+  const day = (iso) => {
+    const i = r.timestamp.findIndex(
+      (t) => new Date(t * 1000).toISOString().slice(0, 10) === iso
+    );
+    if (i < 0) throw new Error("Yahoo has no daily bar for " + iso);
+    return { open: q.open[i], close: q.close[i] };
   };
+  return { close: day(CLOSE_DAY).close, open: day(OPEN_DAY).open };
 }
 
 async function main() {
-  const closePrice = Number(process.argv[2]);
   const send = process.argv.includes("--send");
-  if (!closePrice) throw new Error("Usage: node scripts/devnet/settle-window.js <fridayClosePrice> [--send]");
 
   const treasury = Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(fs.readFileSync(path.join(__dirname, "treasury.json"), "utf-8")))
@@ -71,13 +77,10 @@ async function main() {
   );
   const connection = new Connection(DEVNET_RPC, "confirmed");
 
-  const reopen = await fetchReopenPrice();
-  console.log(`Reopen price: $${reopen.price} (market state ${reopen.state}, quoted ${new Date(reopen.timeMs).toISOString()})`);
-  if (reopen.timeMs < WINDOW_END_UTC_MS) {
-    throw new Error(
-      "The market has not reopened yet: this quote is from before Monday 9:30am ET. Run again after the open."
-    );
-  }
+  const prices = await fetchWindowPrices();
+  const closePrice = prices.close;
+  const reopen = { price: prices.open };
+  console.log(`Friday ${CLOSE_DAY} close: $${closePrice}, Monday ${OPEN_DAY} open: $${reopen.price}`);
 
   // Pool figures: USDC collected in the pool, and protection tokens sold.
   const client = DynamicBondingCurveClient.create(connection, "confirmed");
