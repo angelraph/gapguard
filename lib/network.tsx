@@ -22,10 +22,11 @@ export type NetworkConfig = {
 };
 
 // Referenced as plain property accesses so Next inlines them at build time.
-const MAINNET_POOL = process.env.NEXT_PUBLIC_PROTECTION_POOL_MAINNET;
-const DEVNET_POOL = process.env.NEXT_PUBLIC_PROTECTION_POOL_DEVNET;
+// Trimmed because a stray newline saved with an env var breaks a base58 address.
+const MAINNET_POOL = process.env.NEXT_PUBLIC_PROTECTION_POOL_MAINNET?.trim() || undefined;
+const DEVNET_POOL = process.env.NEXT_PUBLIC_PROTECTION_POOL_DEVNET?.trim() || undefined;
 const MAINNET_RPC =
-  process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? "https://api.mainnet-beta.solana.com";
+  process.env.NEXT_PUBLIC_MAINNET_RPC_URL?.trim() || "https://api.mainnet-beta.solana.com";
 const DEVNET_RPC = "https://api.devnet.solana.com";
 
 export const NETWORKS: Record<NetworkId, NetworkConfig> = {

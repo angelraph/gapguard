@@ -17,7 +17,7 @@ import { PROTECTION_MARKETS, type NetworkId } from "@/lib/meteora/dbcPool";
 const cache = new Map<NetworkId, unknown>();
 
 function treasuryAddressFor(network: NetworkId): string | undefined {
-  if (network === "mainnet") return process.env.TREASURY_ADDRESS_MAINNET;
+  if (network === "mainnet") return process.env.TREASURY_ADDRESS_MAINNET?.trim();
   // The devnet treasury is the same keypair the faucet uses.
   const secret = process.env.TREASURY_KEYPAIR_SECRET;
   if (!secret) return undefined;
