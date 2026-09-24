@@ -1,20 +1,27 @@
 @import "tailwindcss";
 
+/*
+ * GapGuard look: a dark, focused base (Stripr-style hero, diagram card and
+ * stat row) with a soft aurora wash, gradient headline text, pill buttons
+ * and glassy layered shadows (Stocketa-style). Colour is used sparingly:
+ * mint for "live / primary", sky for the real price, a violet accent only
+ * in gradients.
+ */
 :root {
-  /* Backgrounds */
-  --color-bg-primary: #0a0a0b;
-  --color-bg-elevated: #0f0f12;
-  --color-bg-card: #121214;
-  --color-border: #34343d;
+  --color-bg-primary: #060a0e;
+  --color-bg-elevated: #0b1218;
+  --color-bg-card: #0d151c;
+  --color-border: #1e2a35;
 
-  /* Text */
-  --color-text-primary: #f4f4f5;
-  --color-text-secondary: #a9a9b3;
-  --color-text-muted: #8a8a95;
+  --color-text-primary: #eef3f7;
+  --color-text-secondary: #9fb0bd;
+  --color-text-muted: #7a8c9a;
 
-  /* Accents (matching the Stocklana hackathon site's own palette) */
-  --color-solana-green: #14f195;
-  --color-solana-purple: #9945ff;
+  --color-mint: #3ddc97;
+  --color-sky: #7cc7ff;
+  --color-violet: #c58ae6;
+  --color-brand: #3ddc97;
+  --color-on-brand: #04130c;
 }
 
 @theme inline {
@@ -25,30 +32,144 @@
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-muted: var(--color-text-muted);
-  --color-solana-green: var(--color-solana-green);
-  --color-solana-purple: var(--color-solana-purple);
-  --font-sans: var(--font-space-grotesk);
+  --color-mint: var(--color-mint);
+  --color-sky: var(--color-sky);
+  --color-violet: var(--color-violet);
+  --color-brand: var(--color-brand);
+  --color-on-brand: var(--color-on-brand);
+  --font-sans: var(--font-dm-sans);
+  --font-serif: var(--font-fraunces);
   --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
-  background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  /* Aurora wash: green, teal, violet and pink bleeding down from the top. */
+  background-image: radial-gradient(
+    130% 70% at 50% -12%,
+    rgba(105, 201, 102, 0.17) 0%,
+    rgba(39, 187, 219, 0.14) 28%,
+    rgba(139, 71, 206, 0.11) 50%,
+    rgba(218, 64, 134, 0.05) 68%,
+    rgba(255, 149, 116, 0) 82%
+  );
+  background-repeat: no-repeat;
+  background-attachment: scroll;
 }
 
-/* Match the wallet-connect button (third-party component) to our palette. */
+/* Every bordered box becomes a soft, glassy card. */
+.border.border-border {
+  border-radius: 18px;
+}
+
+.border.border-border.bg-bg-card,
+.glass {
+  background-color: var(--color-bg-card);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.07),
+    0 1px 1px rgba(124, 199, 255, 0.1);
+}
+
+.glass {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+}
+
+input.border.border-border {
+  border-radius: 12px;
+}
+
+/* Type */
+.display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, var(--color-violet), var(--color-sky) 55%, var(--color-mint));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-mint);
+}
+
+/* Buttons: always pills. */
+.btn-primary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100px;
+  padding: 0.8rem 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.btn-primary {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--color-brand) 86%, white);
+}
+
+.btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+.btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Faint hero grid, fading out. */
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);
+  mask-image: radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);
+}
+
+/* The wallet-connect button (third-party) matches our pills. */
 .wallet-adapter-button {
-  background-color: var(--color-solana-purple) !important;
-  border-radius: 0 !important;
-  font-family: var(--font-space-grotesk), system-ui, sans-serif !important;
+  background-color: var(--color-brand) !important;
+  color: var(--color-on-brand) !important;
+  border-radius: 100px !important;
+  font-family: var(--font-dm-sans), system-ui, sans-serif !important;
+  font-weight: 600 !important;
 }
 
 .wallet-adapter-button:not([disabled]):hover {
-  background-color: color-mix(in srgb, var(--color-solana-purple) 90%, white) !important;
+  background-color: color-mix(in srgb, var(--color-brand) 86%, white) !important;
 }
 
-.wallet-adapter-modal,
-.wallet-adapter-modal-list,
-.wallet-adapter-modal-container .wallet-adapter-button {
-  border-radius: 0 !important;
+.wallet-adapter-modal-wrapper {
+  border-radius: 18px !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  background-color: transparent !important;
+  color: inherit !important;
+  border-radius: 12px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }

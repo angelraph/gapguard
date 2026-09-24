@@ -9,6 +9,7 @@ import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from
 import { getBuyQuote, buildBuyTransaction, getProtectionMint } from "@/lib/meteora/quote";
 import type { SettlementResult } from "@/lib/meteora/settlement";
 import { NETWORKS, useNetwork } from "@/lib/network";
+import { SiteHeader } from "@/components/SiteHeader";
 
 /**
  * Gap Insurance (layer 3): a real buy flow against the Meteora DBC SDK,
@@ -191,18 +192,15 @@ export default function ProtectPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-bg-primary text-text-primary">
-      <header className="border-b border-border px-4 py-5 sm:px-10">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <Link href="/" className="text-sm text-text-secondary hover:text-solana-purple">
-            ← GapGuard
-          </Link>
-          <h1 className="text-lg font-semibold">Gap Insurance</h1>
-        </div>
-      </header>
+    <div className="flex flex-1 flex-col text-text-primary">
+      <SiteHeader active="insurance" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-10 sm:py-10">
-        <p className="mb-6 text-sm text-text-secondary">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-4 sm:px-10">
+        <p className="eyebrow">Gap Insurance</p>
+        <h1 className="display mt-3 text-4xl sm:text-5xl">
+          Insure one weekend against <span className="text-gradient">a big price jump</span>
+        </h1>
+        <p className="mb-6 mt-4 max-w-xl text-text-secondary">
           Pay a small fee now to protect one stock over one weekend. If its
           price jumps too much, you get paid back.
         </p>
@@ -210,7 +208,7 @@ export default function ProtectPage() {
         <div
           role="tablist"
           aria-label="Network"
-          className="mb-4 grid grid-cols-2 border border-border text-sm"
+          className="mb-4 grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-bg-elevated p-1 text-sm"
         >
           {(["mainnet", "devnet"] as const).map((id) => (
             <button
@@ -218,10 +216,10 @@ export default function ProtectPage() {
               role="tab"
               aria-selected={config.id === id}
               onClick={() => setNetwork(id)}
-              className={`px-3 py-2.5 font-medium ${
+              className={`rounded-full px-3 py-2.5 font-medium transition-colors ${
                 config.id === id
-                  ? "bg-solana-purple text-white"
-                  : "bg-bg-card text-text-secondary hover:text-text-primary"
+                  ? "bg-brand text-on-brand"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
               {NETWORKS[id].label}
@@ -286,7 +284,7 @@ export default function ProtectPage() {
               {connected && protectionBalance !== null && (
                 <div className="border border-border bg-bg-elevated p-3 text-center text-sm">
                   <span className="text-text-secondary">You currently hold </span>
-                  <span className="font-mono font-semibold text-solana-green">
+                  <span className="font-mono font-semibold text-mint">
                     {protectionBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                   </span>
                   <span className="text-text-secondary">
@@ -307,7 +305,7 @@ export default function ProtectPage() {
                   <button
                     onClick={handleGetTestUsdc}
                     disabled={!!faucetStatus && faucetStatus.startsWith("Sending")}
-                    className="text-sm text-solana-purple underline hover:text-solana-purple/80 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="text-sm text-brand underline hover:text-brand/80 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Get 50 test USDC for this wallet
                   </button>
@@ -342,7 +340,7 @@ export default function ProtectPage() {
               <button
                 onClick={handleBuy}
                 disabled={!connected || !quoteTokens || !!buyStatus}
-                className="w-full bg-solana-purple px-4 py-2 text-sm font-medium text-white hover:bg-solana-purple/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {!connected ? "Connect your wallet first" : buyStatus ?? "Buy protection"}
               </button>
@@ -352,7 +350,7 @@ export default function ProtectPage() {
               )}
 
               {txSignature && (
-                <p className="text-sm text-solana-green">
+                <p className="text-sm text-mint">
                   Done!{" "}
                   <a
                     href={explorerUrl(txSignature)}

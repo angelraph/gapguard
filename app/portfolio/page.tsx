@@ -6,6 +6,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import type { PortfolioHolding } from "@/app/api/portfolio/[wallet]/route";
 import { useNetwork } from "@/lib/network";
+import { SiteHeader } from "@/components/SiteHeader";
 
 type ObligationSummary = {
   loanToValue: number;
@@ -86,17 +87,14 @@ export default function PortfolioPage() {
       : null;
 
   return (
-    <div className="flex flex-1 flex-col bg-bg-primary text-text-primary">
-      <header className="border-b border-border px-4 py-5 sm:px-10">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/" className="text-sm text-text-secondary hover:text-solana-purple">
-            ← GapGuard
-          </Link>
-          <h1 className="text-lg font-semibold">Your risk</h1>
-        </div>
-      </header>
+    <div className="flex flex-1 flex-col text-text-primary">
+      <SiteHeader active="risk" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-10 sm:py-10">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-4 sm:px-10">
+        <p className="eyebrow">Your risk</p>
+        <h1 className="display mb-6 mt-3 text-4xl sm:text-5xl">
+          What a sudden jump would do to <span className="text-gradient">your wallet</span>
+        </h1>
         <div className="border border-border bg-bg-card p-6 text-center sm:p-8">
           <p className="mb-4 text-text-secondary">
             Connect your wallet to see the tokenized stocks you hold, and
@@ -130,7 +128,7 @@ export default function PortfolioPage() {
                 This page always reads real holdings on Solana&apos;s main
                 network — that part isn&apos;t a test. The Gap Insurance
                 devnet test wallet (used for the free test pool on the{" "}
-                <Link href="/protect" className="underline hover:text-solana-purple">
+                <Link href="/protect" className="underline hover:text-brand">
                   Protect
                 </Link>{" "}
                 page) is a separate, devnet-only address and has never held
@@ -196,7 +194,7 @@ export default function PortfolioPage() {
                 max={20}
                 value={gapPct}
                 onChange={(e) => setGapPct(Number(e.target.value))}
-                className="mt-3 w-full accent-solana-purple"
+                className="mt-3 w-full accent-brand"
               />
 
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -209,7 +207,7 @@ export default function PortfolioPage() {
                   </p>
                   <p
                     className={`mt-1 font-mono text-sm tabular-nums ${
-                      projectedChange < 0 ? "text-red-400" : "text-solana-green"
+                      projectedChange < 0 ? "text-red-400" : "text-mint"
                     }`}
                   >
                     {projectedChange >= 0 ? "+" : ""}
@@ -234,7 +232,7 @@ export default function PortfolioPage() {
                         className={`mt-1 text-sm ${
                           projectedLtv >= data.obligation.liquidationLtv
                             ? "text-red-400"
-                            : "text-solana-green"
+                            : "text-mint"
                         }`}
                       >
                         {projectedLtv >= data.obligation.liquidationLtv
