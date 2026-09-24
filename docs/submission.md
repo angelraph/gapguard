@@ -27,7 +27,7 @@ The judges ask whether this could be a real app people actually use.
 
 **Pyth.** Pyth is the price source the whole product stands on, not a decoration. The Radar compares Pyth's equity feed against Pyth's xStock feed for all 8 stocks, refreshed every 30 seconds. Gap Insurance settles from Pyth too: the settlement reads Friday's close and Monday's open from `Equity.US.TSLA/USD` at those exact moments (Pyth's price history lookup), and writes the price source and the exact Pyth publish times into the on-chain record so anyone can re-check them. If Pyth ever fails, the Radar falls back to Jupiter plus Yahoo Finance and says so on the page, so the site never goes dark.
 
-**Meteora DBC.** A Dynamic Bonding Curve normally launches a memecoin. Here it is used as a transparent, on-chain sale curve for a protection token tied to one stock and one weekend, with USDC as the quote token, so premiums pool up in USDC in the pool itself. The configuration is deliberately unusual: migration is set 1,000 times above the starting market cap so it can never realistically trigger, 10% of liquidity is locked as the protocol requires, and the fee is a flat, visible 1%. It was tested end to end on devnet first, which found real undocumented behaviour in the SDK (listed further down). A mainnet pool of the same configuration is described in the mainnet section.
+**Meteora DBC.** A Dynamic Bonding Curve normally launches a memecoin. Here it is used as a transparent, on-chain sale curve for a protection token tied to one stock and one weekend, with USDC as the quote token, so premiums pool up in USDC in the pool itself. The configuration is deliberately unusual: migration is set 1,000 times above the starting market cap so it can never realistically trigger, 10% of liquidity is locked as the protocol requires, and the fee is a flat, visible 1%. It was tested end to end on devnet first, which found real undocumented behaviour in the SDK (listed further down). The same configuration is now live on mainnet (see the mainnet pool section).
 
 **PreStocks.** The Radar and Your risk both read PreStocks' public API. For each pre-IPO token it shows the issuer's mark against the live on-chain price, sorted by the size of the gap, and Your risk recognises PreStocks holdings alongside tokenized stocks. This is the same risk GapGuard tracks for public stocks, on assets that have no market hours at all.
 
@@ -45,6 +45,19 @@ We would rather say this clearly than have a judge find out later.
 ## What happened when we settled the first window
 
 The devnet test window ran Friday Sep 18 4:00pm ET to Monday Sep 21 9:30am ET. From Pyth, Tesla's Friday close was $364.38 and Monday's open was $371.64, a move of 1.99%. That is under the 3% trigger, so nobody was paid, and the pool keeps the fees. That is the mechanism working as designed, and the result is recorded on-chain.
+
+## The mainnet pool
+
+On Sep 24 the same pool configuration that was proven on devnet was created on Solana mainnet, with real USDC as the quote token.
+
+- Pool: `SzUNezNopYi4sgFEoo4wFspP91QqTSxqCLvkLgZy2Ak`
+- Creation transaction: [view on Explorer](https://explorer.solana.com/tx/xwscc3W7rhmLB7q6fk1E2vUzLYo4oxuLqNSGtoWdSNbZuYKnjTPHcKek7Yi51DCwyHLfMsRGuqZYvRQqooY1prT)
+- Protection token: `4vnCSCkBKcsJBWq7BWCCW7QEKu2tNdPBxTh5EgVod186` (TSLA Gap Protection, symbol TSLAGAP, with on-chain metadata)
+- Creator and settlement wallet: `KUnoVrSna9UML2PJG1CkDZPX4nopr7ZQovBbFDQ71GW`
+- Window: Friday Sep 25 4:00pm ET to Monday Sep 28 9:30am ET, so it settles live during judging. Creating it cost about 0.027 SOL in rent.
+- Quotes work against the live pool from the app (for example, $1 of USDC buys about 989 protection tokens).
+
+This pool is real money on a real network, so it is kept small and the page says plainly that it is not audited. Settlement on Monday Sep 28 follows the same process as the devnet window: a script reads Pyth's Friday close and Monday open, writes the result on-chain, and the page shows it. Payouts, if the 3% trigger is ever crossed, come from a builder controlled wallet.
 
 ## An honest problem we hit, and how we handled it
 
