@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { StockBasis, MarketDataSource } from "@/lib/marketData/types";
 import type { ReserveExposure } from "@/lib/kamino/exposure";
+import type { PreStock } from "@/lib/prestocks/client";
+
+function formatValuation(usd: number): string {
+  if (usd >= 1e12) return `$${(usd / 1e12).toFixed(2)}T`;
+  return `$${(usd / 1e9).toFixed(1)}B`;
+}
 
 type RadarResponse = {
   generatedAt: string;
@@ -14,8 +20,8 @@ type RadarResponse = {
 };
 
 const SOURCE_LABEL: Record<MarketDataSource, string> = {
-  pyth: "Pyth Network",
-  free: "Jupiter + Yahoo Finance (free, while we wait on Pyth access)",
+  pyth: "Pyth Network (real stock feed vs on-chain xStock feed)",
+  free: "Jupiter + Yahoo Finance (backup source, used only if Pyth is unavailable)",
 };
 
 function formatUsd(n: number): string {
@@ -67,11 +73,23 @@ const WALKTHROUGH_STEPS = [
 export default function RadarPage() {
   const [data, setData] = useState<RadarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preStocks, setPreStocks] = useState<PreStock[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
+    async function pollPreStocks() {
+      try {
+        const res = await fetch("/api/prestocks", { cache: "no-store" });
+        const json = await res.json();
+        if (!cancelled && json.stocks) setPreStocks(json.stocks);
+      } catch {
+        // The pre-IPO section is additive; if it fails, the rest still works.
+      }
+    }
+
     async function poll() {
+      pollPreStocks();
       try {
         const res = await fetch("/api/radar/summary", { cache: "no-store" });
         const json: RadarResponse = await res.json();
@@ -245,6 +263,80 @@ export default function RadarPage() {
             </table>
           </div>
         </section>
+
+        {preStocks && preStocks.length > 0 && (
+          <section className="mt-12">
+            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-text-muted">
+              Pre-IPO tokens: issuer&apos;s price vs. on-chain price
+            </h2>
+            <p className="mb-4 max-w-2xl text-sm text-text-muted">
+              Private companies like OpenAI and SpaceX have no market hours
+              and no live price at all. Their token issuer (PreStocks)
+              publishes a &quot;mark&quot;, its own estimate of the price,
+              which only changes now and then. Meanwhile the token trades
+              on Solana every second. The gap is the same risk as above,
+              only permanent: whoever is on the wrong side of it finds out
+              when the mark is next updated.
+            </p>
+            <div className="overflow-x-auto border border-border">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead className="bg-bg-elevated text-left text-text-secondary">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Company</th>
+                    <th className="px-4 py-3 font-medium">Issuer&apos;s mark</th>
+                    <th className="px-4 py-3 font-medium">On-chain price</th>
+                    <th className="px-4 py-3 font-medium">Gap</th>
+                    <th className="px-4 py-3 font-medium">Valuation the token implies</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...preStocks]
+                    .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))
+                    .map((p) => (
+                      <tr key={p.symbol} className="border-t border-border hover:bg-bg-card">
+                        <td className="px-4 py-3">
+                          <a
+                            href={p.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium hover:text-solana-purple hover:underline"
+                          >
+                            {p.company}
+                          </a>
+                          <div className="text-xs text-text-muted">{p.symbol}</div>
+                        </td>
+                        <td className="px-4 py-3 font-mono tabular-nums">
+                          ${p.markPrice.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 font-mono tabular-nums">
+                          ${p.tokenPrice.toFixed(2)}
+                        </td>
+                        <td
+                          className={`px-4 py-3 font-mono tabular-nums font-medium ${
+                            Math.abs(p.gap) > 0.05 ? "text-amber-400" : "text-text-secondary"
+                          }`}
+                        >
+                          {formatPct(p.gap)}
+                        </td>
+                        <td className="px-4 py-3 font-mono tabular-nums text-text-secondary">
+                          {formatValuation(p.impliedValuationUsd)}
+                          <span className="text-text-muted">
+                            {" "}
+                            vs {formatValuation(p.markValuationUsd)} marked
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-xs text-text-muted">
+              Data from PreStocks&apos; public API, live. A positive gap means
+              the token trades above the issuer&apos;s mark, a negative gap
+              means below it.
+            </p>
+          </section>
+        )}
       </main>
 
       <footer className="border-t border-border px-4 py-6 text-center text-xs text-text-muted sm:px-10">

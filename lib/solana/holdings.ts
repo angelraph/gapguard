@@ -19,14 +19,14 @@ export type Holding = {
 };
 
 /**
- * Reads a wallet's balances for the curated xStock mints only. This is a
- * plain, free, permissionless RPC read — no API key, no paid tier, works
- * forever as long as Solana RPC exists.
+ * Every Token-2022 balance a wallet holds, as mint -> amount. xStocks and
+ * PreStocks are both Token-2022, so one read covers both. This is a plain,
+ * free, permissionless RPC read: no API key, no paid tier.
  */
-export async function fetchXStockHoldings(
+export async function fetchToken2022Balances(
   connection: Connection,
   wallet: PublicKey
-): Promise<Holding[]> {
+): Promise<Map<string, number>> {
   const { value: accounts } = await connection.getParsedTokenAccountsByOwner(
     wallet,
     { programId: TOKEN_2022_PROGRAM_ID }
@@ -41,7 +41,11 @@ export async function fetchXStockHoldings(
       byMint.set(mint, (byMint.get(mint) ?? 0) + uiAmount);
     }
   }
+  return byMint;
+}
 
+/** The curated xStock holdings within a wallet's balances. */
+export function xStockHoldingsFrom(byMint: Map<string, number>): Holding[] {
   const holdings: Holding[] = [];
   for (const stock of CURATED_STOCKS) {
     const amountTokens = byMint.get(stock.mint);

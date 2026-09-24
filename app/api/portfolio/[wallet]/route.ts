@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { fetchXStockHoldings } from "@/lib/solana/holdings";
+import { fetchToken2022Balances, xStockHoldingsFrom } from "@/lib/solana/holdings";
+import { fetchPreStocks } from "@/lib/prestocks/client";
 import { fetchObligationSummary } from "@/lib/kamino/portfolio";
 import { getMarketData } from "@/lib/marketData";
 
 export type PortfolioHolding = {
+  /** "stock" = a tokenized public stock, "pre-ipo" = a PreStocks token. */
+  kind: "stock" | "pre-ipo";
   ticker: string;
   name: string;
   xstockSymbol: string;
@@ -46,17 +49,19 @@ export async function GET(
 
   try {
     const connection = new Connection(rpcUrl, "confirmed");
-    const [rawHoldings, { source, stocks }] = await Promise.all([
-      fetchXStockHoldings(connection, walletPubkey),
+    const [balances, { source, stocks }, preStocks] = await Promise.all([
+      fetchToken2022Balances(connection, walletPubkey),
       getMarketData(),
+      fetchPreStocks().catch(() => []),
     ]);
 
     const priceByTicker = new Map(stocks.map((s) => [s.ticker, s]));
-    const holdings: PortfolioHolding[] = rawHoldings
-      .map((h) => {
+    const stockHoldings = xStockHoldingsFrom(balances)
+      .map((h): PortfolioHolding | null => {
         const live = priceByTicker.get(h.ticker);
         if (!live) return null;
         return {
+          kind: "stock",
           ticker: h.ticker,
           name: h.name,
           xstockSymbol: h.xstockSymbol,
@@ -68,6 +73,26 @@ export async function GET(
         };
       })
       .filter((h): h is PortfolioHolding => h !== null);
+
+    // Pre-IPO tokens: the "basis" is the on-chain price vs the issuer's mark.
+    const preIpoHoldings: PortfolioHolding[] = preStocks
+      .filter((p) => balances.has(p.mint))
+      .map((p): PortfolioHolding => {
+        const amountTokens = balances.get(p.mint)!;
+        return {
+          kind: "pre-ipo",
+          ticker: p.symbol,
+          name: p.company,
+          xstockSymbol: p.symbol,
+          mint: p.mint,
+          amountTokens,
+          currentPrice: p.tokenPrice,
+          valueUsd: amountTokens * p.tokenPrice,
+          basis: p.gap,
+        };
+      });
+
+    const holdings = [...stockHoldings, ...preIpoHoldings];
 
     let obligation = null;
     try {

@@ -119,9 +119,10 @@ export default function PortfolioPage() {
         {connected && !loading && !error && data && data.holdings.length === 0 && (
           <div className="mt-8 text-center text-sm text-text-muted">
             <p>
-              This wallet doesn&apos;t hold any of the 8 stocks GapGuard tracks
-              right now (Apple, Alphabet, Robinhood, MicroStrategy, Nvidia,
-              QQQ, SPY, or Tesla).
+              This wallet doesn&apos;t hold any of the tokens GapGuard tracks
+              right now: the 8 tokenized stocks (Apple, Alphabet, Robinhood,
+              MicroStrategy, Nvidia, QQQ, SPY, Tesla) or the 8 PreStocks
+              pre-IPO tokens (OpenAI, Anthropic, SpaceX, Anduril and more).
             </p>
             {IS_DEVNET && (
               <p className="mx-auto mt-3 max-w-md border border-dashed border-border p-3 text-xs">
@@ -134,7 +135,7 @@ export default function PortfolioPage() {
                 page) is a separate, devnet-only address and has never held
                 real stock tokens, so it&apos;s expected to show empty here.
                 To see this page populated, connect a wallet that actually
-                holds one of the 8 tracked stocks on mainnet.
+                holds one of the tracked tokens on mainnet.
               </p>
             )}
           </div>
@@ -156,7 +157,14 @@ export default function PortfolioPage() {
                     <tr key={h.mint} className="border-t border-border">
                       <td className="px-4 py-3">
                         <span className="font-medium">{h.ticker}</span>
-                        <div className="text-xs text-text-muted">{h.name}</div>
+                        <div className="text-xs text-text-muted">
+                          {h.name}
+                          {h.kind === "pre-ipo" && (
+                            <span className="ml-2 border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                              Pre-IPO
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-mono tabular-nums">
                         {h.amountTokens.toLocaleString(undefined, { maximumFractionDigits: 4 })}
