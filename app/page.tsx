@@ -201,7 +201,7 @@ export default function RadarPage() {
               </div>
             )}
             {widestPre && (
-              <div className="glass absolute -bottom-10 -left-5 z-10 hidden -rotate-[5deg] px-3.5 py-2 text-xs lg:block">
+              <div className="glass absolute -bottom-16 -left-5 z-10 hidden -rotate-[5deg] px-3.5 py-2 text-xs lg:block">
                 <span className="font-semibold">{widestPre.company}</span>{" "}
                 <span className="font-mono text-amber-300">{formatPct(widestPre.gap)}</span>{" "}
                 <span className="text-text-muted">vs mark</span>
