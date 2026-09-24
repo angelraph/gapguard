@@ -6,6 +6,12 @@ import type { StockBasis, MarketDataSource } from "@/lib/marketData/types";
 import type { ReserveExposure } from "@/lib/kamino/exposure";
 import type { PreStock } from "@/lib/prestocks/client";
 import { SiteHeader } from "@/components/SiteHeader";
+import { RadarPlot, type RadarPoint } from "@/components/home/RadarPlot";
+import { TickerTape, type TapeItem } from "@/components/home/TickerTape";
+import { WeekStrip } from "@/components/home/WeekStrip";
+import { GapCalculator } from "@/components/home/GapCalculator";
+import { Roadmap } from "@/components/home/Roadmap";
+import { Faq } from "@/components/home/Faq";
 
 type RadarResponse = {
   generatedAt: string;
@@ -18,11 +24,6 @@ type RadarResponse = {
 const SOURCE_LABEL: Record<MarketDataSource, string> = {
   pyth: "Pyth Network (real stock feed vs on-chain xStock feed)",
   free: "Jupiter + Yahoo Finance (backup source, used only if Pyth is unavailable)",
-};
-
-const SOURCE_SHORT: Record<MarketDataSource, string> = {
-  pyth: "Pyth",
-  free: "Backup",
 };
 
 function formatUsd(n: number): string {
@@ -61,24 +62,51 @@ function friendlyErrorMessage(error: string): string {
   return "GapGuard couldn't load live prices just now. This usually fixes itself in a moment.";
 }
 
-const WALKTHROUGH_STEPS = [
+const INSURANCE_STEPS = [
   {
-    title: "Two versions of the same stock",
-    body: "Stocks such as Apple or Tesla now have an on-chain equivalent that trades on Solana continuously, including nights and weekends.",
+    title: "Buy protection",
+    body: "Pay a small fee in USDC for one stock and one weekend. You receive protection tokens from a Meteora bonding curve.",
   },
   {
-    title: "The real market keeps set hours",
-    body: "The underlying shares only trade during normal market hours. While that market is closed, this page tracks any drift between the on-chain price and the last real price.",
+    title: "The window runs",
+    body: "From Friday's close to Monday's open, the real market is shut and the token keeps trading.",
   },
   {
-    title: "Assess or hedge your exposure",
-    body: "Connect a wallet under “Your risk” to review your own holdings, or use “Gap Insurance” to hedge against a sudden price move for a small fee.",
+    title: "Pyth settles it",
+    body: "The close and the open are read from Pyth's price history and written into a Solana transaction, timestamps included.",
+  },
+  {
+    title: "Paid, or the fee is kept",
+    body: "A move past 3% pays protection holders back. Anything smaller and the pool keeps the fees.",
   },
 ];
 
-function gapTone(gap: number): string {
-  return Math.abs(gap) > 0.02 ? "text-amber-300" : "text-mint";
-}
+const WHY_SOLANA = [
+  {
+    title: "It trades around the clock",
+    body: "The problem only exists because these tokens settle in seconds, every hour of every day.",
+  },
+  {
+    title: "The data is already on-chain",
+    body: "Pyth prices both the real stock and the token, and Kamino holds the collateral, all natively on Solana.",
+  },
+  {
+    title: "Cheap enough to insure a weekend",
+    body: "A protection purchase costs a fraction of a cent in fees, so small positions can be protected too.",
+  },
+];
+
+const WHY_ICONS = [
+  <svg key="clock" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm.9 4.2v3.6l2.6 1.5-.9 1.5-3.4-2V6.2h1.7z" />
+  </svg>,
+  <svg key="link" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M8.5 5.2a3.6 3.6 0 015.1 0l1.2 1.2a3.6 3.6 0 010 5.1l-1 1-1.3-1.3 1-1a1.8 1.8 0 000-2.5l-1.2-1.2a1.8 1.8 0 00-2.5 0l-1 1L7.5 6.2l1-1zm3 9.6a3.6 3.6 0 01-5.1 0L5.2 13.6a3.6 3.6 0 010-5.1l1-1 1.3 1.3-1 1a1.8 1.8 0 000 2.5l1.2 1.2a1.8 1.8 0 002.5 0l1-1 1.3 1.3-1 1z" />
+  </svg>,
+  <svg key="coin" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm.8 3.6v.7c1.1.2 1.9.9 2 1.9h-1.5c-.1-.4-.5-.7-1.2-.7-.7 0-1.1.3-1.1.7 0 .5.4.7 1.6 1 1.5.4 2.4.9 2.4 2.1 0 1-.8 1.7-2 1.9v.7H9.2v-.7c-1.2-.2-2-.9-2.1-2h1.5c.1.5.6.8 1.4.8.7 0 1.2-.3 1.2-.8s-.4-.7-1.6-1c-1.4-.4-2.3-.9-2.3-2.1 0-1 .8-1.7 1.9-1.9v-.7h1.6z" />
+  </svg>,
+];
 
 export default function RadarPage() {
   const [data, setData] = useState<RadarResponse | null>(null);
@@ -124,189 +152,116 @@ export default function RadarPage() {
   }, []);
 
   const closedCount = data?.stocks.filter((s) => s.marketLikelyClosed).length ?? 0;
-  const tsla = data?.stocks.find((s) => s.ticker === "TSLA") ?? data?.stocks[0];
+  const tsla = data?.stocks.find((s) => s.ticker === "TSLA") ?? null;
   const widestStock = data?.stocks.length
     ? [...data.stocks].sort((a, b) => Math.abs(b.basis) - Math.abs(a.basis))[0]
     : null;
   const widestPre = preStocks?.length
     ? [...preStocks].sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))[0]
     : null;
-  const trackedCount = (data?.stocks.length ?? 0) + (preStocks?.length ?? 0);
+
+  const radarPoints: RadarPoint[] = [
+    ...(data?.stocks ?? []).map((s) => ({ label: s.ticker, gap: s.basis, kind: "stock" as const })),
+    ...(preStocks ?? []).map((p) => ({ label: p.symbol, gap: p.gap, kind: "pre-ipo" as const })),
+  ];
+  const tapeItems: TapeItem[] = [
+    ...(data?.stocks ?? []).map((s) => ({ label: s.ticker, gap: s.basis })),
+    ...(preStocks ?? []).map((p) => ({ label: p.symbol, gap: p.gap, note: "vs issuer mark" })),
+  ];
 
   return (
     <div className="relative flex flex-1 flex-col text-text-primary">
-      <div className="hero-grid pointer-events-none absolute inset-x-0 top-0 h-[640px]" />
+      <div className="hero-grid pointer-events-none absolute inset-x-0 top-0 h-[700px]" />
       <SiteHeader active="radar" />
+      <TickerTape items={tapeItems} />
 
       <main className="relative mx-auto w-full max-w-6xl flex-1 px-4 pb-16 sm:px-10">
         {/* Hero */}
-        <section className="grid items-center gap-12 pb-16 pt-8 sm:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
+        <section className="grid items-center gap-10 pb-14 pt-10 sm:pt-16 lg:grid-cols-[1fr_1.05fr] lg:gap-6">
           <div>
-            <p className="eyebrow">Gap risk for tokenized stocks</p>
-            <h1 className="display mt-5 text-[2.75rem] sm:text-6xl lg:text-[4.4rem]">
-              Tokenized stocks never sleep.{" "}
-              <span className="text-gradient">The market does.</span>
+            <p className="eyebrow">Gap risk radar · Solana</p>
+            <h1 className="display mt-5 text-[2.9rem] sm:text-6xl lg:text-[4.6rem]">
+              While the market sleeps,{" "}
+              <span className="text-gradient">the price doesn&apos;t.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-text-secondary">
-              When the real stock market closes, the token keeps trading and
-              nothing checks its price. GapGuard tracks that gap live on
-              Pyth, shows what it means for your holdings, and lets you
-              insure a weekend against a big move.
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-text-secondary">
+              Tokenized stocks trade around the clock on Solana. The real market keeps
+              office hours. GapGuard shows the gap between them, live, and lets you
+              insure a weekend against it.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#radar" className="btn-primary">
-                Open the Radar
-              </a>
-              <Link href="/protect" className="btn-ghost">
-                Try Gap Insurance
+              <Link href="/protect" className="btn-primary">
+                Insure a weekend
               </Link>
+              <a href="#radar" className="btn-ghost">
+                See the live radar
+              </a>
             </div>
-
-            <dl className="mt-12 grid max-w-xl grid-cols-3 gap-6 border-t border-white/10 pt-6">
-              <div>
-                <dt className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-text-muted">
-                  Collateral on Kamino
-                </dt>
-                <dd className="mt-1.5 font-mono text-xl tabular-nums sm:text-2xl">
-                  {data?.exposure ? formatUsd(data.exposure.total) : "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-text-muted">
-                  Tokens tracked
-                </dt>
-                <dd className="mt-1.5 font-mono text-xl tabular-nums sm:text-2xl">
-                  {trackedCount > 0 ? trackedCount : "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-text-muted">
-                  Price source
-                </dt>
-                <dd className="mt-1.5 font-mono text-xl sm:text-2xl">
-                  {data ? SOURCE_SHORT[data.source] : "—"}
-                </dd>
-              </div>
-            </dl>
+            <p className="mt-8 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-white/10 px-4 py-2 text-xs text-text-secondary">
+              <span className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-mint" />
+                </span>
+                {data ? `Live on ${data.source === "pyth" ? "Pyth" : "backup feed"}` : "Connecting"}
+              </span>
+              <span className="text-white/20">/</span>
+              <span>{radarPoints.length || "16"} tokens on the radar</span>
+              {data?.exposure && (
+                <>
+                  <span className="text-white/20">/</span>
+                  <span>{formatUsd(data.exposure.total)} lent against them on Kamino</span>
+                </>
+              )}
+            </p>
           </div>
 
-          {/* Fig. 1: a live look at one stock */}
-          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            {widestStock && (
-              <div className="glass absolute -right-2 -top-7 z-10 hidden rotate-[4deg] px-3.5 py-2 text-xs lg:block">
-                <span className="font-semibold">{widestStock.ticker}</span>{" "}
-                <span className={`font-mono ${gapTone(widestStock.basis)}`}>
-                  {formatPct(widestStock.basis)}
+          <div className="relative">
+            {tsla && (
+              <div className="glass absolute -left-1 top-6 z-10 hidden -rotate-6 items-center gap-2 px-3.5 py-2 text-xs lg:flex">
+                <span className="font-semibold">{tsla.ticker}</span>
+                <span className={`font-mono tabular-nums ${Math.abs(tsla.basis) > 0.03 ? "text-amber-300" : "text-mint"}`}>
+                  {formatPct(tsla.basis)}
                 </span>
               </div>
             )}
             {widestPre && (
-              <div className="glass absolute -bottom-16 -left-5 z-10 hidden -rotate-[5deg] px-3.5 py-2 text-xs lg:block">
-                <span className="font-semibold">{widestPre.company}</span>{" "}
-                <span className="font-mono text-amber-300">{formatPct(widestPre.gap)}</span>{" "}
+              <div className="glass absolute -right-2 top-[38%] z-10 hidden rotate-[7deg] items-center gap-2 px-3.5 py-2 text-xs lg:flex">
+                <span className="font-semibold">{widestPre.company}</span>
+                <span className="font-mono tabular-nums text-amber-300">{formatPct(widestPre.gap)}</span>
                 <span className="text-text-muted">vs mark</span>
               </div>
             )}
-
-            <div className="glass p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold">{tsla?.ticker ?? "TSLA"}</p>
-                  <p className="text-xs text-text-muted">
-                    Tokenized stock · {tsla?.name ?? "Tesla Inc."}
-                  </p>
-                </div>
-                <span className="rounded-full border border-white/15 px-3 py-1 text-xs text-text-secondary">
-                  {tsla ? (tsla.marketLikelyClosed ? "Market closed" : "Market open") : "Loading"}
+            {widestStock && (
+              <div className="glass absolute bottom-16 left-2 z-10 hidden rotate-[4deg] items-center gap-2 px-3.5 py-2 text-xs lg:flex">
+                <span className="font-semibold">{widestStock.ticker}</span>
+                <span className={`font-mono tabular-nums ${Math.abs(widestStock.basis) > 0.03 ? "text-amber-300" : "text-mint"}`}>
+                  {formatPct(widestStock.basis)}
                 </span>
+                <span className="text-text-muted">widest today</span>
               </div>
-            </div>
-
-            <svg
-              aria-hidden
-              className="mx-auto block h-10 w-[70%]"
-              viewBox="0 0 100 40"
-              preserveAspectRatio="none"
-              fill="none"
-            >
-              <path
-                d="M50 0V14M50 14H0V40M50 14H100V40"
-                stroke="rgba(61,220,151,0.5)"
-                strokeWidth="1"
-                strokeDasharray="3 3"
-                vectorEffect="non-scaling-stroke"
-              />
-            </svg>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="glass p-4">
-                <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-sky">
-                  Real price
-                </p>
-                <p className="mt-2 font-mono text-2xl tabular-nums">
-                  {tsla ? `$${tsla.equityPrice.toFixed(2)}` : "—"}
-                </p>
-                <p className="mt-1 text-xs text-text-muted">
-                  The real stock. Freezes when the market closes.
-                </p>
-              </div>
-              <div className="glass p-4">
-                <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-mint">
-                  On-chain price
-                </p>
-                <p className="mt-2 font-mono text-2xl tabular-nums">
-                  {tsla ? `$${tsla.xstockPrice.toFixed(2)}` : "—"}
-                </p>
-                <p className="mt-1 text-xs text-text-muted">
-                  The token on Solana. Keeps moving, all week.
-                </p>
-              </div>
-            </div>
-
-            <div className="glass mt-3 flex items-center justify-between gap-3 px-5 py-3.5 text-sm">
-              <span className="text-text-secondary">The gap between them</span>
-              <span className={`font-mono text-lg font-medium ${tsla ? gapTone(tsla.basis) : ""}`}>
-                {tsla ? formatPct(tsla.basis) : "—"}
-              </span>
-            </div>
-            <p className="mt-3 text-xs italic text-text-muted">
-              Fig. 1 Both prices are read live from Pyth. When the real market
-              is closed, the first one stops and the second keeps going. That
-              growing gap is the risk.
-            </p>
+            )}
+            <RadarPlot points={radarPoints} />
           </div>
         </section>
 
-        {/* How it works */}
-        <section id="how" className="grid gap-8 py-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
-          <div>
-            <p className="eyebrow">How this works</p>
-            <h2 className="display mt-4 text-3xl sm:text-4xl">
-              Two prices for one stock, and nobody watching the difference.
-            </h2>
-          </div>
-          <div className="space-y-8">
-            {WALKTHROUGH_STEPS.map((step, i) => (
-              <div key={step.title} className="flex gap-4">
-                <span
-                  aria-hidden
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] font-mono text-sm text-violet"
-                >
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="font-semibold">{step.title}</p>
-                  <p className="mt-1 text-[0.95rem] leading-relaxed text-text-secondary">
-                    {step.body}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Why the gap exists */}
+        <section id="why" className="scroll-mt-6 pt-10">
+          <p className="eyebrow">Why the gap exists</p>
+          <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
+            The stock works office hours. The token works every hour.
+          </h2>
+          <p className="mb-8 mt-4 max-w-2xl text-text-secondary">
+            A stock like Tesla trades about 32 hours a week. Its token on Solana
+            trades all 168. In every hour that isn&apos;t lime below, the real price
+            is frozen while the token keeps moving, and nothing checks it until
+            the market reopens.
+          </p>
+          <WeekStrip />
         </section>
 
         {error && (
-          <div className="mb-8 rounded-2xl border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+          <div className="mt-10 rounded-2xl border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
             <p>{friendlyErrorMessage(error)}</p>
             <details className="mt-2 text-xs text-amber-300/60">
               <summary className="cursor-pointer">Technical details</summary>
@@ -315,8 +270,8 @@ export default function RadarPage() {
           </div>
         )}
 
-        {/* Radar */}
-        <section id="radar" className="scroll-mt-6 pt-10">
+        {/* Radar table */}
+        <section id="radar" className="scroll-mt-6 pt-24">
           <p className="eyebrow">The Radar</p>
           <h2 className="display mt-4 text-3xl sm:text-4xl">Real price vs. on-chain price, live</h2>
           <p className="mt-3 max-w-2xl text-text-secondary">
@@ -351,7 +306,11 @@ export default function RadarPage() {
                     </td>
                     <td className="px-4 py-3 font-mono tabular-nums">${s.equityPrice.toFixed(2)}</td>
                     <td className="px-4 py-3 font-mono tabular-nums">${s.xstockPrice.toFixed(2)}</td>
-                    <td className={`px-4 py-3 font-mono font-medium tabular-nums ${Math.abs(s.basis) > 0.02 ? "text-amber-300" : "text-text-secondary"}`}>
+                    <td
+                      className={`px-4 py-3 font-mono font-medium tabular-nums ${
+                        Math.abs(s.basis) > 0.02 ? "text-amber-300" : "text-text-secondary"
+                      }`}
+                    >
                       {formatPct(s.basis)}
                     </td>
                     <td className="px-4 py-3 font-mono tabular-nums text-text-secondary">
@@ -429,7 +388,11 @@ export default function RadarPage() {
                         </td>
                         <td className="px-4 py-3 font-mono tabular-nums">${p.markPrice.toFixed(2)}</td>
                         <td className="px-4 py-3 font-mono tabular-nums">${p.tokenPrice.toFixed(2)}</td>
-                        <td className={`px-4 py-3 font-mono font-medium tabular-nums ${Math.abs(p.gap) > 0.05 ? "text-amber-300" : "text-text-secondary"}`}>
+                        <td
+                          className={`px-4 py-3 font-mono font-medium tabular-nums ${
+                            Math.abs(p.gap) > 0.05 ? "text-amber-300" : "text-text-secondary"
+                          }`}
+                        >
                           {formatPct(p.gap)}
                         </td>
                         <td className="px-4 py-3 font-mono tabular-nums text-text-secondary">
@@ -448,6 +411,89 @@ export default function RadarPage() {
             </p>
           </section>
         )}
+
+        {/* Calculator */}
+        <section id="calculator" className="scroll-mt-6 pt-24">
+          <p className="eyebrow">Feel the gap</p>
+          <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
+            What would a weekend move do to you?
+          </h2>
+          <p className="mb-6 mt-3 max-w-2xl text-text-secondary">
+            No wallet needed. Pick a position and a move and see it. Connect a
+            wallet on Your risk to see it with your real holdings.
+          </p>
+          <GapCalculator />
+        </section>
+
+        {/* Gap Insurance */}
+        <section id="insurance" className="scroll-mt-6 pt-24">
+          <p className="eyebrow">Gap Insurance</p>
+          <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
+            One stock, one weekend, one clear rule.
+          </h2>
+          <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {INSURANCE_STEPS.map((step, i) => (
+              <li key={step.title} className="glass relative p-5">
+                <span className="font-mono text-xs text-text-muted">0{i + 1}</span>
+                <p className="mt-3 font-semibold">{step.title}</p>
+                <p className="mt-2 text-sm leading-relaxed text-text-secondary">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <Link href="/protect" className="btn-primary">
+              Try it on the free test network
+            </Link>
+            <span className="text-sm text-text-muted">
+              Also live on mainnet with real USDC. Not audited.
+            </span>
+          </div>
+        </section>
+
+        {/* Why Solana */}
+        <section className="grid gap-10 pt-24 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+          <div>
+            <p className="eyebrow">Why Solana</p>
+            <h2 className="display mt-4 text-3xl sm:text-4xl">
+              This problem only exists because of how Solana works.
+            </h2>
+          </div>
+          <div className="space-y-9">
+            {WHY_SOLANA.map((w, i) => (
+              <div key={w.title} className="flex gap-4">
+                <span className="icon-tile" aria-hidden>
+                  {WHY_ICONS[i]}
+                </span>
+                <div>
+                  <p className="font-semibold">{w.title}</p>
+                  <p className="mt-1 text-[0.95rem] leading-relaxed text-text-secondary">{w.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Roadmap */}
+        <section id="roadmap" className="scroll-mt-6 pt-24">
+          <p className="eyebrow">Roadmap</p>
+          <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
+            From a working hackathon build to a market you don&apos;t have to trust me on.
+          </h2>
+          <p className="mb-8 mt-3 max-w-2xl text-text-secondary">
+            What is live today, and what it takes to make it something people
+            can rely on.
+          </p>
+          <Roadmap />
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" className="scroll-mt-6 pt-24">
+          <p className="eyebrow">FAQ</p>
+          <h2 className="display mt-4 text-3xl sm:text-4xl">Questions, answered plainly.</h2>
+          <div className="mt-8">
+            <Faq />
+          </div>
+        </section>
 
         {/* Closing call to action */}
         <section className="glass mt-24 flex flex-col items-start justify-between gap-6 p-8 sm:flex-row sm:items-center">

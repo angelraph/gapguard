@@ -37,6 +37,12 @@ export function SiteHeader({ active = null }: { active?: Active }) {
           <Link href="/#radar" className={`hidden sm:inline ${linkClass(active === "radar")}`}>
             Radar
           </Link>
+          <Link href="/#roadmap" className="hidden text-text-secondary hover:text-text-primary md:inline">
+            Roadmap
+          </Link>
+          <Link href="/#faq" className="hidden text-text-secondary hover:text-text-primary md:inline">
+            FAQ
+          </Link>
           <Link href="/portfolio" className={linkClass(active === "risk")}>
             Your risk
           </Link>

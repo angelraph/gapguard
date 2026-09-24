@@ -8,20 +8,21 @@
  * in gradients.
  */
 :root {
-  --color-bg-primary: #060a0e;
-  --color-bg-elevated: #0b1218;
-  --color-bg-card: #0d151c;
-  --color-border: #1e2a35;
+  --color-bg-primary: #08080b;
+  --color-bg-elevated: #0e0f14;
+  --color-bg-card: #111319;
+  --color-border: #22252e;
 
-  --color-text-primary: #eef3f7;
-  --color-text-secondary: #9fb0bd;
-  --color-text-muted: #7a8c9a;
+  --color-text-primary: #f1f2f5;
+  --color-text-secondary: #a3a8b5;
+  --color-text-muted: #7b8190;
 
-  --color-mint: #3ddc97;
+  /* "mint" is the live / positive / primary signal colour: a lime green. */
+  --color-mint: #b8f56b;
   --color-sky: #7cc7ff;
   --color-violet: #c58ae6;
-  --color-brand: #3ddc97;
-  --color-on-brand: #04130c;
+  --color-brand: #b8f56b;
+  --color-on-brand: #10160a;
 }
 
 @theme inline {
@@ -38,7 +39,7 @@
   --color-brand: var(--color-brand);
   --color-on-brand: var(--color-on-brand);
   --font-sans: var(--font-dm-sans);
-  --font-serif: var(--font-fraunces);
+  --font-display: var(--font-bricolage);
   --font-mono: var(--font-jetbrains-mono);
 }
 
@@ -47,11 +48,11 @@ body {
   background-color: var(--color-bg-primary);
   /* Aurora wash: green, teal, violet and pink bleeding down from the top. */
   background-image: radial-gradient(
-    130% 70% at 50% -12%,
-    rgba(105, 201, 102, 0.17) 0%,
-    rgba(39, 187, 219, 0.14) 28%,
-    rgba(139, 71, 206, 0.11) 50%,
-    rgba(218, 64, 134, 0.05) 68%,
+    140% 80% at 50% -14%,
+    rgba(105, 201, 102, 0.26) 0%,
+    rgba(39, 187, 219, 0.21) 26%,
+    rgba(139, 71, 206, 0.19) 48%,
+    rgba(218, 64, 134, 0.09) 66%,
     rgba(255, 149, 116, 0) 82%
   );
   background-repeat: no-repeat;
@@ -63,19 +64,36 @@ body {
   border-radius: 18px;
 }
 
+/* Frosted glass with a three-part shadow: a soft blue-tinted drop, a 1px
+ * highlight along the top edge, and a faint dark line underneath. */
 .border.border-border.bg-bg-card,
 .glass {
-  background-color: var(--color-bg-card);
+  background-color: rgba(17, 19, 25, 0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   border-color: rgba(255, 255, 255, 0.07);
   box-shadow:
-    0 4px 18px rgba(0, 0, 0, 0.35),
-    inset 0 1px 1px rgba(255, 255, 255, 0.07),
-    0 1px 1px rgba(124, 199, 255, 0.1);
+    0 4px 18px rgba(97, 110, 124, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 1px 1px rgba(34, 50, 94, 0.4);
 }
 
 .glass {
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 18px;
+  border-radius: 20px;
+}
+
+/* Small tinted tile that holds a list icon. */
+.icon-tile {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(165, 175, 203, 0.13);
+  color: #c98be8;
 }
 
 input.border.border-border {
@@ -84,14 +102,50 @@ input.border.border-border {
 
 /* Type */
 .display {
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.04;
+  font-family: var(--font-bricolage), var(--font-dm-sans), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+/* Live ticker tape across the top. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.tape-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 60s linear infinite;
+}
+.tape:hover .tape-track {
+  animation-play-state: paused;
+}
+
+/* The radar's sweeping beam, and a pulse on blips past their trigger. */
+@keyframes sweep {
+  to { transform: rotate(360deg); }
+}
+.radar-sweep {
+  transform-origin: 230px 230px;
+  animation: sweep 7s linear infinite;
+}
+@keyframes blip {
+  0% { r: 5; opacity: 0.7; }
+  100% { r: 16; opacity: 0; }
+}
+.blip-pulse {
+  animation: blip 2.2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-track, .radar-sweep, .blip-pulse {
+    animation: none !important;
+  }
 }
 
 .text-gradient {
-  background: linear-gradient(90deg, var(--color-violet), var(--color-sky) 55%, var(--color-mint));
+  background: linear-gradient(90deg, #c98be8, #9ea9ea 52%, #7cc7ff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
