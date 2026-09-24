@@ -60,6 +60,23 @@ export function GapCalculator() {
             <span>0</span>
             <span>+20%</span>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[-10, -5, -2, 2, 5, 10].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setGap(p)}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                  gap === p
+                    ? "border-mint/60 bg-mint/10 text-mint"
+                    : "border-white/12 text-text-secondary hover:border-white/30"
+                }`}
+              >
+                {p > 0 ? "+" : ""}
+                {p}%
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="rounded-2xl bg-white/[0.04] p-5">

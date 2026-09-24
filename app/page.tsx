@@ -6,6 +6,7 @@ import type { StockBasis, MarketDataSource } from "@/lib/marketData/types";
 import type { ReserveExposure } from "@/lib/kamino/exposure";
 import type { PreStock } from "@/lib/prestocks/client";
 import { SiteHeader } from "@/components/SiteHeader";
+import { GapBar } from "@/components/GapBar";
 import { RadarPlot, type RadarPoint } from "@/components/home/RadarPlot";
 import { TickerTape, type TapeItem } from "@/components/home/TickerTape";
 import { WeekStrip } from "@/components/home/WeekStrip";
@@ -41,6 +42,8 @@ const POLL_INTERVAL_MS = 30_000;
 
 function formatPct(basis: number): string {
   const pct = basis * 100;
+  // Avoid showing "-0.00%" for a gap that rounds to nothing.
+  if (Math.abs(pct) < 0.005) return "0.00%";
   const sign = pct >= 0 ? "+" : "";
   return `${sign}${pct.toFixed(2)}%`;
 }
@@ -285,10 +288,10 @@ export default function RadarPage() {
               <thead className="bg-bg-elevated text-left text-text-secondary">
                 <tr>
                   <th className="px-4 py-3 font-medium">Stock</th>
-                  <th className="px-4 py-3 font-medium">Real price</th>
-                  <th className="px-4 py-3 font-medium">On-chain price</th>
-                  <th className="px-4 py-3 font-medium">Gap</th>
-                  <th className="px-4 py-3 font-medium">Real price last updated</th>
+                  <th className="px-4 py-3 text-right font-medium">Real price</th>
+                  <th className="px-4 py-3 text-right font-medium">On-chain price</th>
+                  <th className="px-4 py-3 text-right font-medium">Gap</th>
+                  <th className="px-4 py-3 text-right font-medium">Real price updated</th>
                   <th className="px-4 py-3 font-medium">Market</th>
                 </tr>
               </thead>
@@ -304,21 +307,26 @@ export default function RadarPage() {
                       </Link>
                       <div className="text-xs text-text-muted">{s.name}</div>
                     </td>
-                    <td className="px-4 py-3 font-mono tabular-nums">${s.equityPrice.toFixed(2)}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums">${s.xstockPrice.toFixed(2)}</td>
-                    <td
-                      className={`px-4 py-3 font-mono font-medium tabular-nums ${
-                        Math.abs(s.basis) > 0.02 ? "text-amber-300" : "text-text-secondary"
-                      }`}
-                    >
-                      {formatPct(s.basis)}
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">${s.equityPrice.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">${s.xstockPrice.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="inline-flex items-center justify-end gap-3">
+                        <GapBar gap={s.basis} />
+                        <span
+                          className={`w-16 font-mono font-medium tabular-nums ${
+                            Math.abs(s.basis) > 0.02 ? "text-amber-300" : "text-text-secondary"
+                          }`}
+                        >
+                          {formatPct(s.basis)}
+                        </span>
+                      </span>
                     </td>
-                    <td className="px-4 py-3 font-mono tabular-nums text-text-secondary">
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-text-secondary">
                       {formatStaleness(s.equityStalenessSec)}
                     </td>
                     <td className="px-4 py-3">
                       {s.marketLikelyClosed ? (
-                        <span className="rounded-full bg-red-950/70 px-2.5 py-1 text-xs text-red-300">Closed</span>
+                        <span className="rounded-full bg-white/[0.07] px-2.5 py-1 text-xs text-text-secondary">Closed</span>
                       ) : (
                         <span className="rounded-full bg-mint/10 px-2.5 py-1 text-xs text-mint">Open</span>
                       )}
@@ -364,10 +372,10 @@ export default function RadarPage() {
                 <thead className="bg-bg-elevated text-left text-text-secondary">
                   <tr>
                     <th className="px-4 py-3 font-medium">Company</th>
-                    <th className="px-4 py-3 font-medium">Issuer&apos;s mark</th>
-                    <th className="px-4 py-3 font-medium">On-chain price</th>
-                    <th className="px-4 py-3 font-medium">Gap</th>
-                    <th className="px-4 py-3 font-medium">Valuation the token implies</th>
+                    <th className="px-4 py-3 text-right font-medium">Issuer&apos;s mark</th>
+                    <th className="px-4 py-3 text-right font-medium">On-chain price</th>
+                    <th className="px-4 py-3 text-right font-medium">Gap</th>
+                    <th className="px-4 py-3 text-right font-medium">Valuation the token implies</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -386,16 +394,21 @@ export default function RadarPage() {
                           </a>
                           <div className="text-xs text-text-muted">{p.symbol}</div>
                         </td>
-                        <td className="px-4 py-3 font-mono tabular-nums">${p.markPrice.toFixed(2)}</td>
-                        <td className="px-4 py-3 font-mono tabular-nums">${p.tokenPrice.toFixed(2)}</td>
-                        <td
-                          className={`px-4 py-3 font-mono font-medium tabular-nums ${
-                            Math.abs(p.gap) > 0.05 ? "text-amber-300" : "text-text-secondary"
-                          }`}
-                        >
-                          {formatPct(p.gap)}
+                        <td className="px-4 py-3 text-right font-mono tabular-nums">${p.markPrice.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-mono tabular-nums">${p.tokenPrice.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="inline-flex items-center justify-end gap-3">
+                            <GapBar gap={p.gap} max={0.35} warn={0.05} />
+                            <span
+                              className={`w-16 font-mono font-medium tabular-nums ${
+                                Math.abs(p.gap) > 0.05 ? "text-amber-300" : "text-text-secondary"
+                              }`}
+                            >
+                              {formatPct(p.gap)}
+                            </span>
+                          </span>
                         </td>
-                        <td className="px-4 py-3 font-mono tabular-nums text-text-secondary">
+                        <td className="px-4 py-3 text-right font-mono tabular-nums text-text-secondary">
                           {formatValuation(p.impliedValuationUsd)}
                           <span className="text-text-muted"> vs {formatValuation(p.markValuationUsd)} marked</span>
                         </td>
@@ -434,7 +447,17 @@ export default function RadarPage() {
           <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {INSURANCE_STEPS.map((step, i) => (
               <li key={step.title} className="glass relative p-5">
-                <span className="font-mono text-xs text-text-muted">0{i + 1}</span>
+                {i < INSURANCE_STEPS.length - 1 && (
+                  <span
+                    aria-hidden
+                    className="absolute -right-[19px] top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-bg-primary text-xs text-text-secondary lg:flex"
+                  >
+                    →
+                  </span>
+                )}
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-mint/15 font-mono text-xs text-mint">
+                  {i + 1}
+                </span>
                 <p className="mt-3 font-semibold">{step.title}</p>
                 <p className="mt-2 text-sm leading-relaxed text-text-secondary">{step.body}</p>
               </li>
@@ -515,8 +538,37 @@ export default function RadarPage() {
         </section>
       </main>
 
-      <footer className="relative px-4 py-8 text-center text-xs text-text-muted sm:px-10">
-        {data ? SOURCE_LABEL[data.source] : "Loading price source…"} · Built solo for the Stocklana hackathon.
+      <footer className="relative border-t border-white/[0.06] px-4 py-10 sm:px-10">
+        <div className="mx-auto grid max-w-6xl gap-8 text-sm sm:grid-cols-[1.4fr_1fr_1fr]">
+          <div>
+            <p className="font-semibold">GapGuard</p>
+            <p className="mt-2 max-w-xs text-xs leading-relaxed text-text-muted">
+              A gap risk radar and weekend insurance for tokenized stocks on Solana. Built solo
+              for the Stocklana hackathon. A hackathon project, not audited.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Project</p>
+            <ul className="mt-3 space-y-2 text-text-secondary">
+              <li><a className="hover:text-text-primary" href="https://github.com/angelraph/gapguard" target="_blank" rel="noopener noreferrer">Code on GitHub</a></li>
+              <li><a className="hover:text-text-primary" href="https://github.com/angelraph/gapguard/blob/master/docs/submission.md" target="_blank" rel="noopener noreferrer">Full write-up</a></li>
+              <li><Link className="hover:text-text-primary" href="/protect">Gap Insurance</Link></li>
+              <li><Link className="hover:text-text-primary" href="/portfolio">Your risk</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Built with</p>
+            <ul className="mt-3 space-y-2 text-text-secondary">
+              <li><a className="hover:text-text-primary" href="https://pyth.network" target="_blank" rel="noopener noreferrer">Pyth Network</a></li>
+              <li><a className="hover:text-text-primary" href="https://www.meteora.ag" target="_blank" rel="noopener noreferrer">Meteora</a></li>
+              <li><a className="hover:text-text-primary" href="https://prestocks.com" target="_blank" rel="noopener noreferrer">PreStocks</a></li>
+              <li><a className="hover:text-text-primary" href="https://kamino.finance" target="_blank" rel="noopener noreferrer">Kamino</a></li>
+            </ul>
+          </div>
+        </div>
+        <p className="mx-auto mt-8 max-w-6xl text-xs text-text-muted">
+          Live price source: {data ? SOURCE_LABEL[data.source] : "loading…"}
+        </p>
       </footer>
     </div>
   );

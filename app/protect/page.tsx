@@ -256,16 +256,50 @@ export default function ProtectPage() {
           </div>
         )}
 
-        <div className="border border-border bg-bg-card p-6 sm:p-8">
-          <h2 className="text-2xl font-semibold">{PROTECTION_MARKET.ticker}</h2>
-          <p className="mt-1 text-text-secondary">{PROTECTION_MARKET.windowLabel}</p>
-          <p className="mt-4 text-sm text-text-secondary">
-            You get paid back if {PROTECTION_MARKET.ticker}&apos;s price
-            moves more than {(PROTECTION_MARKET.gapThresholdBps / 100).toFixed(1)}%
-            between Friday&apos;s close and Monday&apos;s open. This is
-            checked against Pyth&apos;s real stock price feed, and the exact
-            prices are written on-chain, so nobody (including us) can fake
-            the result.
+        <div className="glass p-6 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="display text-4xl">{PROTECTION_MARKET.ticker}</h2>
+              <p className="mt-1 text-sm text-text-muted">Tesla Inc. · one weekend of protection</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-white/12 px-3 py-1 text-text-secondary">
+                Trigger: {(PROTECTION_MARKET.gapThresholdBps / 100).toFixed(0)}% move
+              </span>
+              <span className="rounded-full border border-white/12 px-3 py-1 text-text-secondary">
+                Settled by Pyth
+              </span>
+            </div>
+          </div>
+
+          <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+            {(() => {
+              const [from, to] = PROTECTION_MARKET.windowLabel.split(" -> ");
+              return (
+                <>
+                  <div className="rounded-2xl bg-white/[0.04] px-4 py-3">
+                    <dt className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-text-muted">
+                      Window opens (Friday&apos;s close)
+                    </dt>
+                    <dd className="mt-1 font-mono text-sm">{from}</dd>
+                  </div>
+                  <div className="rounded-2xl bg-white/[0.04] px-4 py-3">
+                    <dt className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-text-muted">
+                      Window ends (Monday&apos;s open)
+                    </dt>
+                    <dd className="mt-1 font-mono text-sm">{to}</dd>
+                  </div>
+                </>
+              );
+            })()}
+          </dl>
+
+          <p className="mt-5 text-sm leading-relaxed text-text-secondary">
+            You get paid back if {PROTECTION_MARKET.ticker}&apos;s price moves
+            more than {(PROTECTION_MARKET.gapThresholdBps / 100).toFixed(1)}%
+            between Friday&apos;s close and Monday&apos;s open. This is checked
+            against Pyth&apos;s real stock price feed, and the exact prices are
+            written on-chain, so nobody (including us) can fake the result.
           </p>
 
           {!POOL_ADDRESS && (
@@ -282,7 +316,7 @@ export default function ProtectPage() {
               </div>
 
               {connected && protectionBalance !== null && (
-                <div className="border border-border bg-bg-elevated p-3 text-center text-sm">
+                <div className="rounded-2xl bg-white/[0.05] p-3.5 text-center text-sm">
                   <span className="text-text-secondary">You currently hold </span>
                   <span className="font-mono font-semibold text-mint">
                     {protectionBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
@@ -301,16 +335,19 @@ export default function ProtectPage() {
               )}
 
               {IS_DEVNET && connected && (
-                <div className="border border-dashed border-border p-3 text-center">
+                <div className="rounded-2xl border border-dashed border-white/15 p-4 text-center">
+                  <p className="mb-3 text-xs text-text-muted">
+                    Test network money is free. Get some to try the flow.
+                  </p>
                   <button
                     onClick={handleGetTestUsdc}
                     disabled={!!faucetStatus && faucetStatus.startsWith("Sending")}
-                    className="text-sm text-brand underline hover:text-brand/80 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-ghost !px-5 !py-2 !text-sm disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Get 50 test USDC for this wallet
                   </button>
                   {faucetStatus && (
-                    <p className="mt-1 text-xs text-text-muted">{faucetStatus}</p>
+                    <p className="mt-3 text-xs text-text-secondary">{faucetStatus}</p>
                   )}
                 </div>
               )}
@@ -325,81 +362,131 @@ export default function ProtectPage() {
                   step={1}
                   value={usdcAmount}
                   onChange={(e) => setUsdcAmount(Number(e.target.value))}
-                  className="mt-2 w-full border border-border bg-bg-elevated px-3 py-2 font-mono text-sm"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-bg-elevated px-3.5 py-2.5 font-mono text-base"
                 />
+                <div className="mt-2 flex gap-2">
+                  {[5, 10, 25].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setUsdcAmount(v)}
+                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                        usdcAmount === v
+                          ? "border-mint/60 bg-mint/10 text-mint"
+                          : "border-white/12 text-text-secondary hover:border-white/30"
+                      }`}
+                    >
+                      ${v}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="text-sm text-text-secondary">
-                {quoteError
-                  ? quoteError
-                  : quoteTokens !== null
-                  ? `You'd receive about ${quoteTokens.toLocaleString(undefined, { maximumFractionDigits: 4 })} protection tokens.`
-                  : "Getting a quote…"}
+              <div className="rounded-2xl bg-white/[0.05] px-4 py-3.5">
+                {quoteError ? (
+                  <p className="text-sm text-amber-300">{quoteError}</p>
+                ) : quoteTokens !== null ? (
+                  <>
+                    <p className="text-xs text-text-muted">You&apos;d receive about</p>
+                    <p className="mt-0.5 font-mono text-2xl tabular-nums">
+                      {quoteTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      <span className="ml-2 text-sm text-text-secondary">protection tokens</span>
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-text-secondary">Getting a quote…</p>
+                )}
               </div>
 
               <button
                 onClick={handleBuy}
                 disabled={!connected || !quoteTokens || !!buyStatus}
-                className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-primary w-full"
               >
                 {!connected ? "Connect your wallet first" : buyStatus ?? "Buy protection"}
               </button>
 
               {buyError && (
-                <p className="text-sm text-red-400">{buyError}</p>
+                <p className="rounded-2xl border border-red-500/30 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                  {buyError}
+                </p>
               )}
 
               {txSignature && (
-                <p className="text-sm text-mint">
-                  Done!{" "}
-                  <a
-                    href={explorerUrl(txSignature)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    View on Explorer
-                  </a>
-                  {" "}or{" "}
-                  <a
-                    href={solscanUrl(txSignature)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    Solscan
-                  </a>
-                  {IS_DEVNET && (
-                    <span className="mt-1 block text-xs text-text-muted">
-                      If Explorer says the browser check failed or the
-                      transaction isn&apos;t found, try Solscan instead, or
-                      wait a few seconds and reload — both are the
-                      indexer catching up, not a failed transaction.
+                <div className="rounded-2xl border border-mint/30 bg-mint/10 px-4 py-4">
+                  <p className="flex items-center gap-2 text-sm font-medium text-mint">
+                    <span aria-hidden className="flex h-5 w-5 items-center justify-center rounded-full bg-mint text-xs text-on-brand">
+                      ✓
                     </span>
+                    Done. Your purchase is on-chain.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href={solscanUrl(txSignature)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-ghost !px-4 !py-1.5 !text-sm"
+                    >
+                      View on Solscan
+                    </a>
+                    <a
+                      href={explorerUrl(txSignature)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-ghost !px-4 !py-1.5 !text-sm"
+                    >
+                      View on Explorer
+                    </a>
+                  </div>
+                  {IS_DEVNET && (
+                    <p className="mt-3 text-xs text-text-muted">
+                      If Explorer asks for a browser check or says the
+                      transaction isn&apos;t found, use Solscan or wait a few
+                      seconds and reload. That is the indexer catching up, not
+                      a failed transaction.
+                    </p>
                   )}
-                </p>
+                </div>
               )}
             </div>
           )}
 
           {POOL_ADDRESS && settlement && (
-            <div className="mt-6 border border-border bg-bg-elevated p-4">
-              <p className="text-sm font-medium">
-                This window has settled: {PROTECTION_MARKET.ticker} moved{" "}
-                {settlement.gapBps / 100}% by the time the market reopened.
-              </p>
-              <p className="mt-1 text-sm text-text-secondary">
+            <div className="mt-6 rounded-2xl bg-white/[0.05] p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">This window has settled.</p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    settlement.triggered ? "bg-mint/15 text-mint" : "bg-white/10 text-text-secondary"
+                  }`}
+                >
+                  {settlement.triggered ? "Paid out" : "No payout"}
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-[0.68rem] uppercase tracking-[0.12em] text-text-muted">Friday close</p>
+                  <p className="mt-1 font-mono text-lg tabular-nums">${settlement.closePrice.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[0.68rem] uppercase tracking-[0.12em] text-text-muted">Monday open</p>
+                  <p className="mt-1 font-mono text-lg tabular-nums">${settlement.reopenPrice.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[0.68rem] uppercase tracking-[0.12em] text-text-muted">Move</p>
+                  <p className={`mt-1 font-mono text-lg tabular-nums ${settlement.triggered ? "text-mint" : ""}`}>
+                    {(settlement.gapBps / 100).toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-text-secondary">
                 {settlement.triggered
-                  ? `Protection paid out. Each protection token is worth $${settlement.payoutPerTokenUsd.toFixed(4)}.`
-                  : "The move wasn't big enough to trigger a payout."}
+                  ? `The move was past the ${(PROTECTION_MARKET.gapThresholdBps / 100).toFixed(0)}% trigger. Each protection token is worth $${settlement.payoutPerTokenUsd.toFixed(4)}.`
+                  : `The move stayed under the ${(PROTECTION_MARKET.gapThresholdBps / 100).toFixed(0)}% trigger, so nobody is paid and the pool keeps the fees.`}
               </p>
-              <p className="mt-2 font-mono text-xs text-text-muted">
-                Checked against {settlement.priceSource ?? "real price data"}:
-                {" "}$
-                {settlement.closePrice.toFixed(2)} at close, $
-                {settlement.reopenPrice.toFixed(2)} at reopen. The exact
-                Pyth timestamps are recorded on-chain so anyone can re-check
-                this.
+              <p className="mt-2 text-xs text-text-muted">
+                Prices from {settlement.priceSource ?? "real price data"}. The exact Pyth timestamps are
+                recorded on-chain, so anyone can re-check this.
               </p>
             </div>
           )}

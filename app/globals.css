@@ -43,6 +43,49 @@
   --font-mono: var(--font-jetbrains-mono);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: rgba(184, 245, 107, 0.3);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-mint);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* A slider with a quiet track and a lime thumb. */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.14);
+  outline-offset: 6px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: var(--color-mint);
+  border: 3px solid var(--color-bg-card);
+  box-shadow: 0 0 0 1px rgba(184, 245, 107, 0.5), 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: var(--color-mint);
+  border: 3px solid var(--color-bg-card);
+  cursor: pointer;
+}
+
 body {
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
@@ -178,6 +221,14 @@ input.border.border-border {
 }
 .btn-primary:hover {
   background: color-mix(in srgb, var(--color-brand) 86%, white);
+}
+.btn-primary:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+.btn-primary:disabled:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .btn-ghost {
