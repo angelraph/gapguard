@@ -1,0 +1,11 @@
+{
+  "name": "TSLA Gap Protection",
+  "symbol": "TSLAGAP",
+  "description": "Weekend gap protection for tokenized Tesla, from GapGuard. Holders are paid back if Tesla's price at Monday's open differs from Friday's close by more than 3%, measured with Pyth's real stock price feed and recorded on-chain. Window: Friday Sep 25 4:00pm ET to Monday Sep 28 9:30am ET. A hackathon project on Solana, not audited financial infrastructure.",
+  "external_url": "https://gapguard-alpha.vercel.app/protect",
+  "attributes": [
+    { "trait_type": "Underlying", "value": "TSLA" },
+    { "trait_type": "Trigger", "value": "3% move, Friday close to Monday open" },
+    { "trait_type": "Price source", "value": "Pyth Equity.US.TSLA/USD" }
+  ]
+}
