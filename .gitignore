@@ -46,3 +46,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# mainnet treasury keypair, never commit
+scripts/mainnet/*.json

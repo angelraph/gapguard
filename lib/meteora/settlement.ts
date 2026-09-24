@@ -37,6 +37,11 @@ export type SettlementResult = {
   triggered: boolean;
   payoutPerTokenUsd: number;
   settledAtIso: string;
+  /** Where the prices came from, and the exact Pyth publish times, so the
+   * result can be re-checked against Pyth by anyone. */
+  priceSource?: string;
+  closePublishTime?: number;
+  reopenPublishTime?: number;
 };
 
 export function computeSettlement(

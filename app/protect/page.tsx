@@ -360,9 +360,12 @@ export default function ProtectPage() {
                   : "The move wasn't big enough to trigger a payout."}
               </p>
               <p className="mt-2 font-mono text-xs text-text-muted">
-                Checked against real price data at settlement time: $
+                Checked against {settlement.priceSource ?? "real price data"}:
+                {" "}$
                 {settlement.closePrice.toFixed(2)} at close, $
-                {settlement.reopenPrice.toFixed(2)} at reopen.
+                {settlement.reopenPrice.toFixed(2)} at reopen. The exact
+                Pyth timestamps are recorded on-chain so anyone can re-check
+                this.
               </p>
             </div>
           )}

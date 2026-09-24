@@ -4,8 +4,8 @@
  *   node scripts/devnet/settle-window.js          dry run
  *   node scripts/devnet/settle-window.js --send   writes on-chain
  *
- * Uses Friday's real close and Monday's real open from Yahoo Finance (the
- * same free source the live app uses).
+ * Uses Friday's close and Monday's open from Pyth's real TSLA stock feed,
+ * and records the Pyth timestamps on-chain so the result can be re-checked.
  *
  * If the gap crosses the threshold, it also pays each protection token
  * holder their share from the treasury. If not, nobody is paid and the
@@ -40,27 +40,35 @@ const THRESHOLD_BPS = 300;
 const USDC_DECIMALS = 6;
 const TOKEN_DECIMALS = 6;
 
-// The window is Friday's close to Monday's open, so both numbers come from
-// Yahoo's daily bars for those exact dates, not from the price right now
-// (which would be wrong if this runs days after the window ended).
-const CLOSE_DAY = "2026-09-18";
-const OPEN_DAY = "2026-09-21";
+// The window is Friday's close to Monday's open. Both prices come from
+// Pyth's real stock feed (Equity.US.TSLA/USD) at those exact moments, not
+// from the price right now, so this gives the same answer whenever it runs.
+// Close = the last print at or before 4:00pm ET Friday. Open = the first
+// print at or after 9:30am ET Monday.
+const CLOSE_UNIX = Date.parse("2026-09-18T19:59:59Z") / 1000; // 3:59:59pm ET
+const OPEN_UNIX = Date.parse("2026-09-21T13:30:01Z") / 1000; // 9:30:01am ET
+const PYTH_EQUITY_FEED = "16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1"; // Equity.US.TSLA/USD
+
+function pythKey() {
+  if (process.env.PYTH_API_KEY) return process.env.PYTH_API_KEY;
+  const env = fs.readFileSync(path.join(__dirname, "../../.env.local"), "utf-8");
+  return env.match(/^PYTH_API_KEY=(.*)$/m)[1].trim();
+}
+
+async function pythPriceAt(unix) {
+  const res = await fetch(
+    `https://hermes.pyth.network/v2/updates/price/${unix}?ids[]=${PYTH_EQUITY_FEED}&parsed=true`,
+    { headers: { Authorization: `Bearer ${pythKey()}` } }
+  );
+  if (!res.ok) throw new Error(`Pyth lookup failed (${res.status}) for ${unix}`);
+  const p = (await res.json()).parsed[0].price;
+  return { price: Number(p.price) * Math.pow(10, p.expo), publishTime: p.publish_time };
+}
 
 async function fetchWindowPrices() {
-  const res = await fetch(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${TICKER}?interval=1d&range=1mo`,
-    { headers: { "User-Agent": "Mozilla/5.0" } }
-  );
-  const r = (await res.json()).chart.result[0];
-  const q = r.indicators.quote[0];
-  const day = (iso) => {
-    const i = r.timestamp.findIndex(
-      (t) => new Date(t * 1000).toISOString().slice(0, 10) === iso
-    );
-    if (i < 0) throw new Error("Yahoo has no daily bar for " + iso);
-    return { open: q.open[i], close: q.close[i] };
-  };
-  return { close: day(CLOSE_DAY).close, open: day(OPEN_DAY).open };
+  const close = await pythPriceAt(CLOSE_UNIX);
+  const open = await pythPriceAt(OPEN_UNIX);
+  return { close, open };
 }
 
 async function main() {
@@ -78,9 +86,12 @@ async function main() {
   const connection = new Connection(DEVNET_RPC, "confirmed");
 
   const prices = await fetchWindowPrices();
-  const closePrice = prices.close;
-  const reopen = { price: prices.open };
-  console.log(`Friday ${CLOSE_DAY} close: $${closePrice}, Monday ${OPEN_DAY} open: $${reopen.price}`);
+  const closePrice = prices.close.price;
+  const reopen = { price: prices.open.price };
+  console.log(
+    `Pyth close $${closePrice.toFixed(2)} (published ${new Date(prices.close.publishTime * 1000).toISOString()}), ` +
+      `open $${reopen.price.toFixed(2)} (published ${new Date(prices.open.publishTime * 1000).toISOString()})`
+  );
 
   // Pool figures: USDC collected in the pool, and protection tokens sold.
   const client = DynamicBondingCurveClient.create(connection, "confirmed");
@@ -106,6 +117,10 @@ async function main() {
     triggered,
     payoutPerTokenUsd,
     settledAtIso: new Date().toISOString(),
+    // So anyone can re-check these exact prices against Pyth themselves.
+    priceSource: "Pyth Equity.US.TSLA/USD",
+    closePublishTime: prices.close.publishTime,
+    reopenPublishTime: prices.open.publishTime,
   };
   console.log("Settlement result:", result);
 
