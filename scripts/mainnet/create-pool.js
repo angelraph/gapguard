@@ -33,11 +33,20 @@ const MIN_SOL = 0.05;
 // private key exactly as Phantom exports it (one line, base58). The key
 // never goes through chat or git. Otherwise falls back to treasury.json.
 function loadPayer() {
-  const keyFile = path.join(__dirname, "treasury.key");
-  if (fs.existsSync(keyFile)) {
+  // pool-wallet.key wins if it exists, then treasury.key, then treasury.json.
+  const keyFile = [path.join(__dirname, "pool-wallet.key"), path.join(__dirname, "treasury.key")].find((f) =>
+    fs.existsSync(f)
+  );
+  if (keyFile) {
     const bs58 = require("bs58");
     const decode = (bs58.default || bs58).decode;
-    return Keypair.fromSecretKey(decode(fs.readFileSync(keyFile, "utf-8").trim()));
+    const PLACEHOLDER = "PASTE_YOUR_PHANTOM_PRIVATE_KEY_HERE";
+    // Tolerates the placeholder being left on the line next to the key.
+    const text = fs.readFileSync(keyFile, "utf-8").replace(PLACEHOLDER, "").trim();
+    if (!text) {
+      throw new Error("scripts/mainnet/treasury.key still holds only the placeholder. Put your private key in it first.");
+    }
+    return Keypair.fromSecretKey(decode(text));
   }
   return Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(fs.readFileSync(path.join(__dirname, "treasury.json"), "utf-8")))
