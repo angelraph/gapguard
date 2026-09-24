@@ -7,8 +7,9 @@ import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
  *
  * Self-serve devnet test USDC, so anyone testing Gap Insurance can get
  * some without asking the project owner to send it manually — that
- * doesn't scale past one or two people. Only does anything when
- * NEXT_PUBLIC_NETWORK=devnet; on mainnet this route always fails closed.
+ * doesn't scale past one or two people. It always talks to the devnet RPC
+ * and mints only the worthless devnet test token, so it can't touch
+ * mainnet or real money in any case.
  *
  * The treasury is the mint authority for this test token (see
  * scripts/devnet/create-mock-usdc.js), so this mints new supply directly
@@ -19,15 +20,10 @@ import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
  */
 
 const FAUCET_AMOUNT_USDC = 50;
+const COOLDOWN_MS = 2 * 60 * 1000;
+const lastMint = new Map<string, number>();
 
 export async function POST(req: Request) {
-  if (process.env.NEXT_PUBLIC_NETWORK !== "devnet") {
-    return NextResponse.json(
-      { error: "This faucet only works when the site is running on devnet." },
-      { status: 400 }
-    );
-  }
-
   // Deliberately a separate var from SOLANA_RPC_URL — that one stays
   // mainnet (Radar and Portfolio need it), and reusing it here would send
   // this mint transaction to the wrong network entirely.
@@ -52,6 +48,17 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  // Each mint costs the faucet a little devnet SOL, so keep one wallet from
+  // draining it. Best effort: this lives in the server instance's memory.
+  const last = lastMint.get(wallet.toBase58());
+  if (last && Date.now() - last < COOLDOWN_MS) {
+    return NextResponse.json(
+      { error: "You already got test USDC a moment ago. Try again in a few minutes." },
+      { status: 429 }
+    );
+  }
+  lastMint.set(wallet.toBase58(), Date.now());
 
   try {
     const connection = new Connection(rpcUrl, "confirmed");

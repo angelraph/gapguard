@@ -7,14 +7,27 @@ import { PublicKey } from "@solana/web3.js";
  * multi-market factory — see docs/submission.md for why that scoping
  * decision was made.
  */
-export const PROTECTION_MARKET = {
-  ticker: "TSLA", // or AAPL — pick whichever ticker's feed pair looks
-  // cleanest once live data is actually being watched on day 1; both are
-  // confirmed to have equity + xstock + ondo feeds.
-  windowLabel: "Fri Sep 18 4:00pm ET -> Mon Sep 21 9:30am ET",
-  gapThresholdBps: 300, // 3% — protection pays out if the equity price at
-  // Monday's reopen differs from Friday's close by more than this.
+export const PROTECTION_MARKETS = {
+  // Live pool on Solana mainnet: the weekend right after submissions close,
+  // so it settles during judging with real Pyth prices.
+  mainnet: {
+    ticker: "TSLA",
+    windowLabel: "Fri Sep 25 4:00pm ET -> Mon Sep 28 9:30am ET",
+    gapThresholdBps: 300, // 3%: pays out if the price at Monday's open
+    // differs from Friday's close by more than this.
+  },
+  // Free test pool on devnet: the Sep 18-21 weekend, already played out.
+  devnet: {
+    ticker: "TSLA",
+    windowLabel: "Fri Sep 18 4:00pm ET -> Mon Sep 21 9:30am ET",
+    gapThresholdBps: 300,
+  },
 } as const;
+
+export type NetworkId = keyof typeof PROTECTION_MARKETS;
+
+/** The mainnet market, used by scripts/create-dbc-pool.ts. */
+export const PROTECTION_MARKET = PROTECTION_MARKETS.mainnet;
 
 export const USDC_MINT = new PublicKey(
   "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"

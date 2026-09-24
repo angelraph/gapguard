@@ -6,28 +6,22 @@ import BN from "bn.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from "@solana/spl-token";
-import { PROTECTION_MARKET } from "@/lib/meteora/dbcPool";
 import { getBuyQuote, buildBuyTransaction, getProtectionMint } from "@/lib/meteora/quote";
 import type { SettlementResult } from "@/lib/meteora/settlement";
+import { NETWORKS, useNetwork } from "@/lib/network";
 
 /**
- * Gap Insurance (layer 3). The buy flow below is real, working code
- * against the Meteora DBC SDK — but it can only do anything once a pool
- * actually exists on-chain, which needs scripts/create-dbc-pool.ts to be
- * run by someone funding a wallet with real SOL and USDC. That's a
- * financial decision for the project owner, not something done
- * automatically. Until NEXT_PUBLIC_PROTECTION_POOL is set, this page
- * honestly says so instead of pretending to work.
+ * Gap Insurance (layer 3): a real buy flow against the Meteora DBC SDK,
+ * on whichever network the visitor picks (mainnet with real money, or
+ * devnet, a free test network with a free faucet). If a network has no
+ * pool configured yet, this page says so instead of pretending to work.
  */
-const POOL_ADDRESS = process.env.NEXT_PUBLIC_PROTECTION_POOL;
-const NETWORK = process.env.NEXT_PUBLIC_NETWORK ?? "mainnet-beta";
-const IS_DEVNET = NETWORK === "devnet";
 const USDC_DECIMALS = 6;
 
 /** Wallets and wallet-adapter throw raw, often opaque messages ("Unexpected
  * error", "0x1", etc.) — translate the common ones into something a person
  * can actually act on, instead of showing that raw text. */
-function friendlyBuyError(err: unknown): string {
+function friendlyBuyError(err: unknown, IS_DEVNET: boolean): string {
   const raw = err instanceof Error ? err.message : String(err);
   const lower = raw.toLowerCase();
 
@@ -36,8 +30,8 @@ function friendlyBuyError(err: unknown): string {
   }
   if (lower.includes("not been authorized")) {
     return IS_DEVNET
-      ? "Your wallet is set to Mainnet, but this test pool lives on Devnet. Switch your wallet's network to Devnet (in Phantom: Settings → Developer Settings → Change Network), then try again."
-      : "Your wallet refused this request. Make sure it's unlocked and try again.";
+      ? "Your wallet is set to Mainnet, but you picked the Devnet test pool. Switch your wallet's network to Devnet (in Phantom: Settings → Developer Settings → Change Network), or pick Mainnet above, then try again."
+      : "Your wallet refused this request. If it's set to Devnet, switch it to Mainnet (Phantom: Settings → Developer Settings), make sure it's unlocked, and try again.";
   }
   if (
     lower.includes("insufficient") ||
@@ -45,7 +39,7 @@ function friendlyBuyError(err: unknown): string {
     lower.includes("unexpected error")
   ) {
     return IS_DEVNET
-      ? "Your wallet doesn't have the devnet SOL or the test token this pool needs. This is a devnet test pool — only a small set of test wallets currently hold the token it trades against. Ask for test funds and try again."
+      ? "Your wallet doesn't have the devnet SOL or the test USDC this pool needs. Use the free test USDC button on this page, and get a little devnet SOL from faucet.solana.com."
       : "Your wallet doesn't have enough SOL or USDC to complete this purchase.";
   }
   if (lower.includes("token account") || lower.includes("could not find account")) {
@@ -58,6 +52,10 @@ function friendlyBuyError(err: unknown): string {
 export default function ProtectPage() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction, connected } = useWallet();
+  const { config, setNetwork } = useNetwork();
+  const POOL_ADDRESS = config.pool;
+  const IS_DEVNET = config.isDevnet;
+  const PROTECTION_MARKET = config.market;
 
   const [usdcAmount, setUsdcAmount] = useState(10);
   const [quoteTokens, setQuoteTokens] = useState<number | null>(null);
@@ -90,16 +88,20 @@ export default function ProtectPage() {
   }
 
   useEffect(() => {
+    setProtectionBalance(null);
+    setTxSignature(null);
+    setBuyError(null);
     refreshProtectionBalance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicKey, connection]);
+  }, [publicKey, connection, POOL_ADDRESS]);
 
   useEffect(() => {
-    fetch("/api/protect/settlement")
+    setSettlement(null);
+    fetch(`/api/protect/settlement?network=${config.id}`)
       .then((res) => res.json())
       .then((json) => setSettlement(json.settlement ?? null))
       .catch(() => setSettlement(null));
-  }, []);
+  }, [config.id]);
 
   useEffect(() => {
     if (!POOL_ADDRESS || usdcAmount <= 0) {
@@ -126,7 +128,7 @@ export default function ProtectPage() {
     return () => {
       cancelled = true;
     };
-  }, [connection, usdcAmount]);
+  }, [connection, usdcAmount, POOL_ADDRESS]);
 
   async function handleBuy() {
     if (!POOL_ADDRESS || !publicKey) return;
@@ -158,7 +160,7 @@ export default function ProtectPage() {
       setBuyStatus(null);
       refreshProtectionBalance();
     } catch (err) {
-      setBuyError(friendlyBuyError(err));
+      setBuyError(friendlyBuyError(err, IS_DEVNET));
       setBuyStatus(null);
     }
   }
@@ -205,19 +207,53 @@ export default function ProtectPage() {
           price jumps too much, you get paid back.
         </p>
 
-        {POOL_ADDRESS && IS_DEVNET && (
+        <div
+          role="tablist"
+          aria-label="Network"
+          className="mb-4 grid grid-cols-2 border border-border text-sm"
+        >
+          {(["mainnet", "devnet"] as const).map((id) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={config.id === id}
+              onClick={() => setNetwork(id)}
+              className={`px-3 py-2.5 font-medium ${
+                config.id === id
+                  ? "bg-solana-purple text-white"
+                  : "bg-bg-card text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {NETWORKS[id].label}
+            </button>
+          ))}
+        </div>
+
+        {IS_DEVNET ? (
           <div className="mb-4 border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
             <p>
-              This pool runs on Solana&apos;s devnet — a free test network.
-              No real money is involved, and any tokens used here have no
-              real value. This exists to prove the mechanism works before a
-              real, mainnet pool is funded.
+              You&apos;re on Solana&apos;s devnet, a free test network. No
+              real money is involved, and the test USDC here has no real
+              value. It exists so anyone can try the full flow at no cost.
             </p>
             <p className="mt-2">
               Before you connect: set your wallet&apos;s active network to
               Devnet. No website can do this for you — it&apos;s a setting
               inside your wallet, on purpose, for your safety. In Phantom:
               Settings → Developer Settings → Change Network → Devnet.
+            </p>
+          </div>
+        ) : (
+          <div className="mb-4 border border-border bg-bg-elevated px-4 py-3 text-sm text-text-secondary">
+            <p>
+              You&apos;re on Solana mainnet, so this uses real USDC. Buy only
+              what you&apos;re happy to risk: this is a hackathon project,
+              not audited financial infrastructure. Want to try it for free
+              first? Pick Devnet above.
+            </p>
+            <p className="mt-2">
+              Make sure your wallet&apos;s network is set to Mainnet before
+              you connect.
             </p>
           </div>
         )}
@@ -229,15 +265,15 @@ export default function ProtectPage() {
             You get paid back if {PROTECTION_MARKET.ticker}&apos;s price
             moves more than {(PROTECTION_MARKET.gapThresholdBps / 100).toFixed(1)}%
             between Friday&apos;s close and Monday&apos;s open. This is
-            checked against real price data, so nobody (including us) can
-            fake the result.
+            checked against Pyth&apos;s real stock price feed, and the exact
+            prices are written on-chain, so nobody (including us) can fake
+            the result.
           </p>
 
           {!POOL_ADDRESS && (
             <div className="mt-6 border border-dashed border-border p-4 text-sm text-text-muted">
-              This market isn&apos;t open yet — no protection pool has been
-              created on-chain. Buying and getting paid back will work here
-              the moment one exists.
+              There&apos;s no protection pool on {config.isDevnet ? "devnet" : "mainnet"}{" "}
+              yet. Try the {config.isDevnet ? "mainnet" : "devnet"} tab above.
             </div>
           )}
 

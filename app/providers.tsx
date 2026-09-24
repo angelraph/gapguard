@@ -10,6 +10,7 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
+import { NetworkProvider, useNetwork } from "@/lib/network";
 
 /**
  * Wraps the app with Solana wallet-connect support. A client component
@@ -20,11 +21,12 @@ import {
  * any other Wallet Standard wallet a visitor has installed, including
  * Backpack) show up automatically — these two adapters are just a
  * belt-and-suspenders fallback for older wallet versions.
+ *
+ * The RPC endpoint follows the network the visitor picked on Gap Insurance
+ * (mainnet or devnet).
  */
-export function Providers({ children }: { children: React.ReactNode }) {
-  const endpoint =
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL ??
-    "https://api.mainnet-beta.solana.com";
+function WalletShell({ children }: { children: React.ReactNode }) {
+  const { config } = useNetwork();
 
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
@@ -32,10 +34,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <ConnectionProvider endpoint={config.rpc}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
+  );
+}
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <NetworkProvider>
+      <WalletShell>{children}</WalletShell>
+    </NetworkProvider>
   );
 }

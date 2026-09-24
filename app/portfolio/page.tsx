@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import type { PortfolioHolding } from "@/app/api/portfolio/[wallet]/route";
+import { useNetwork } from "@/lib/network";
 
 type ObligationSummary = {
   loanToValue: number;
@@ -29,10 +30,10 @@ function formatPct(fraction: number): string {
   return `${(fraction * 100).toFixed(1)}%`;
 }
 
-const IS_DEVNET = (process.env.NEXT_PUBLIC_NETWORK ?? "mainnet-beta") === "devnet";
 
 export default function PortfolioPage() {
   const { publicKey, connected } = useWallet();
+  const IS_DEVNET = useNetwork().config.isDevnet;
   const [data, setData] = useState<PortfolioResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
