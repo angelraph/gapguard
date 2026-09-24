@@ -26,7 +26,9 @@ export type NetworkConfig = {
 const MAINNET_POOL = process.env.NEXT_PUBLIC_PROTECTION_POOL_MAINNET?.trim() || undefined;
 const DEVNET_POOL = process.env.NEXT_PUBLIC_PROTECTION_POOL_DEVNET?.trim() || undefined;
 const MAINNET_RPC =
-  process.env.NEXT_PUBLIC_MAINNET_RPC_URL?.trim() || "https://api.mainnet-beta.solana.com";
+  // Solana's own public endpoint returns 403 to browsers, so the default is
+  // PublicNode, which is free, keyless and allows browser requests.
+  process.env.NEXT_PUBLIC_MAINNET_RPC_URL?.trim() || "https://solana-rpc.publicnode.com";
 const DEVNET_RPC = "https://api.devnet.solana.com";
 
 export const NETWORKS: Record<NetworkId, NetworkConfig> = {
