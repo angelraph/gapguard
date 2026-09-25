@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Hides Next's floating "N" dev badge when running locally (it shows up in
+  // screen recordings). No effect on the deployed site.
+  devIndicators: false,
+
   /**
    * `@kamino-finance/klend-sdk` pulls in `@orca-so/whirlpools-core`, which
    * ships a native WASM binding. Next's build-time file tracer mishandled

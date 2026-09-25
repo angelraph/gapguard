@@ -14,7 +14,13 @@ const R = 200;
 /** Distance from the centre grows with the size of the gap but flattens out,
  * so a 0.3% gap and a 30% gap can share one picture. */
 function radiusFor(gap: number): number {
-  return 26 + (R - 26) * Math.tanh(Math.abs(gap) / 0.06);
+  return r2(26 + (R - 26) * Math.tanh(Math.abs(gap) / 0.06));
+}
+
+/** Round to 2 decimals so the server and the browser print identical SVG
+ * coordinates (raw floats differ in their last digits between them). */
+function r2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 const RINGS: { gap: number; label: string; trigger?: boolean }[] = [
@@ -94,21 +100,21 @@ export function RadarPlot({ points }: { points: RadarPoint[] }) {
 
         {/* sweeping beam */}
         <g className="radar-sweep">
-          <path d={`M${CX} ${CY} L${CX + R} ${CY} A${R} ${R} 0 0 0 ${CX + R * Math.cos(-0.7)} ${CY + R * Math.sin(-0.7)} Z`} fill="url(#rp-beam)" />
+          <path d={`M${CX} ${CY} L${CX + R} ${CY} A${R} ${R} 0 0 0 ${r2(CX + R * Math.cos(-0.7))} ${r2(CY + R * Math.sin(-0.7))} Z`} fill="url(#rp-beam)" />
           <line x1={CX} y1={CY} x2={CX + R} y2={CY} stroke="#b8f56b" strokeOpacity="0.55" strokeWidth="1" />
         </g>
 
         {points.map((p, i) => {
           const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
           const r = radiusFor(p.gap);
-          const x = CX + r * Math.cos(angle);
-          const y = CY + r * Math.sin(angle);
+          const x = r2(CX + r * Math.cos(angle));
+          const y = r2(CY + r * Math.sin(angle));
           const hot = isHot(p);
           const color = hot ? "#ffb547" : p.kind === "stock" ? "#7cc7ff" : "#c58ae6";
           // Alternate the label distance so neighbours near the centre don't collide.
           const labelGap = 12 + (i % 2) * 13;
-          const lx = CX + (r + labelGap) * Math.cos(angle);
-          const ly = CY + (r + labelGap) * Math.sin(angle);
+          const lx = r2(CX + (r + labelGap) * Math.cos(angle));
+          const ly = r2(CY + (r + labelGap) * Math.sin(angle));
           const anchor = Math.cos(angle) > 0.25 ? "start" : Math.cos(angle) < -0.25 ? "end" : "middle";
           const pct = `${p.gap >= 0 ? "+" : ""}${(p.gap * 100).toFixed(2)}%`;
           return (
