@@ -44,7 +44,7 @@ We would rather say this clearly than have a judge find out later.
 
 ## What happened when we settled the first window
 
-The devnet test window ran Friday Sep 18 4:00pm ET to Monday Sep 21 9:30am ET. From Pyth, Tesla's Friday close was $364.38 and Monday's open was $371.64, a move of 1.99%. That is under the 3% trigger, so nobody was paid, and the pool keeps the fees. That is the mechanism working as designed, and the result is recorded on-chain.
+The devnet test window ran Friday Sep 18 4:00pm ET to Monday Sep 21 9:30am ET. From Pyth, Tesla's Friday close was $364.38 and Monday's open was $371.64, a move of 1.99%. That is under the 3% trigger, so nobody was paid, and the pool keeps the fees. That is the mechanism working as designed, and the result, with Pyth's price source and exact publish times, is [recorded on-chain](https://explorer.solana.com/tx/2iDz8M3mge1hccZy2CcYh86yr8J9MyUePugfcsuiftgYm1AXdg8c5JYEoBFoArboD2vDmwZH9pZxCB3d9iW9Lfu9?cluster=devnet).
 
 ## The mainnet pool
 
