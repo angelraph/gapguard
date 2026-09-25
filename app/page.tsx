@@ -249,7 +249,7 @@ export default function RadarPage() {
         </section>
 
         {/* Why the gap exists */}
-        <section id="why" className="scroll-mt-6 pt-10">
+        <section id="why" className="scroll-mt-24 pt-10">
           <p className="eyebrow">Why the gap exists</p>
           <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
             The stock works office hours. The token works every hour.
@@ -274,7 +274,7 @@ export default function RadarPage() {
         )}
 
         {/* Radar table */}
-        <section id="radar" className="scroll-mt-6 pt-24">
+        <section id="radar" className="scroll-mt-24 pt-24">
           <p className="eyebrow">The Radar</p>
           <h2 className="display mt-4 text-3xl sm:text-4xl">Real price vs. on-chain price, live</h2>
           <p className="mt-3 max-w-2xl text-text-secondary">
@@ -353,7 +353,7 @@ export default function RadarPage() {
 
         {/* Pre-IPO */}
         {preStocks && preStocks.length > 0 && (
-          <section id="pre-ipo" className="scroll-mt-6 pt-20">
+          <section id="pre-ipo" className="scroll-mt-24 pt-20">
             <p className="eyebrow">Pre-IPO tokens</p>
             <h2 className="display mt-4 text-3xl sm:text-4xl">
               The issuer&apos;s price vs. the on-chain price
@@ -426,7 +426,7 @@ export default function RadarPage() {
         )}
 
         {/* Calculator */}
-        <section id="calculator" className="scroll-mt-6 pt-24">
+        <section id="calculator" className="scroll-mt-24 pt-24">
           <p className="eyebrow">Feel the gap</p>
           <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
             What would a weekend move do to you?
@@ -439,7 +439,7 @@ export default function RadarPage() {
         </section>
 
         {/* Gap Insurance */}
-        <section id="insurance" className="scroll-mt-6 pt-24">
+        <section id="insurance" className="scroll-mt-24 pt-24">
           <p className="eyebrow">Gap Insurance</p>
           <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
             One stock, one weekend, one clear rule.
@@ -497,7 +497,7 @@ export default function RadarPage() {
         </section>
 
         {/* Roadmap */}
-        <section id="roadmap" className="scroll-mt-6 pt-24">
+        <section id="roadmap" className="scroll-mt-24 pt-24">
           <p className="eyebrow">Roadmap</p>
           <h2 className="display mt-4 max-w-2xl text-3xl sm:text-4xl">
             From a working hackathon build to a market you don&apos;t have to trust me on.
@@ -510,7 +510,7 @@ export default function RadarPage() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="scroll-mt-6 pt-24">
+        <section id="faq" className="scroll-mt-24 pt-24">
           <p className="eyebrow">FAQ</p>
           <h2 className="display mt-4 text-3xl sm:text-4xl">Questions, answered plainly.</h2>
           <div className="mt-8">

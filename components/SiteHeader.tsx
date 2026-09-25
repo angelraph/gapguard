@@ -25,28 +25,45 @@ type Active = "radar" | "risk" | "insurance" | null;
 const linkClass = (on: boolean) =>
   on ? "text-text-primary" : "text-text-secondary hover:text-text-primary";
 
+/** Jump links to sections of the home page, shown from tablet size up. */
+const SECTION_LINKS = [
+  { href: "/#why", label: "The gap" },
+  { href: "/#radar", label: "Radar" },
+  { href: "/#pre-ipo", label: "Pre-IPO" },
+  { href: "/#insurance", label: "How insurance works" },
+  { href: "/#roadmap", label: "Roadmap" },
+  { href: "/#faq", label: "FAQ" },
+];
+
 export function SiteHeader({ active = null }: { active?: Active }) {
   return (
-    <header className="relative z-10 px-4 py-5 sm:px-10">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-bg-primary/80 px-4 py-3.5 backdrop-blur-md sm:px-10">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <LogoMark />
           <span className="text-xl font-semibold tracking-tight">GapGuard</span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm sm:gap-7">
-          <Link href="/#radar" className={`hidden sm:inline ${linkClass(active === "radar")}`}>
-            Radar
-          </Link>
-          <Link href="/#roadmap" className="hidden text-text-secondary hover:text-text-primary md:inline">
-            Roadmap
-          </Link>
-          <Link href="/#faq" className="hidden text-text-secondary hover:text-text-primary md:inline">
-            FAQ
-          </Link>
-          <Link href="/portfolio" className={linkClass(active === "risk")}>
+        <nav className="flex items-center gap-4 text-sm sm:gap-5">
+          {SECTION_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="hidden whitespace-nowrap text-text-secondary hover:text-text-primary lg:inline"
+            >
+              {l.label}
+            </Link>
+          ))}
+          <Link href="/portfolio" className={`whitespace-nowrap ${linkClass(active === "risk")}`}>
             Your risk
           </Link>
-          <Link href="/protect" className={linkClass(active === "insurance")}>
+          <Link
+            href="/protect"
+            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 ${
+              active === "insurance"
+                ? "border-mint/60 text-mint"
+                : "border-white/15 text-text-primary hover:border-white/40"
+            }`}
+          >
             Gap Insurance
           </Link>
         </nav>
