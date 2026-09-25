@@ -30,7 +30,13 @@ function treasuryAddressFor(network: NetworkId): string | undefined {
 
 export async function GET(req: Request) {
   const requested = new URL(req.url).searchParams.get("network");
-  const network: NetworkId = requested === "mainnet" ? "mainnet" : "devnet";
+  if (requested !== "mainnet" && requested !== "devnet") {
+    return NextResponse.json(
+      { error: "Use ?network=mainnet or ?network=devnet." },
+      { status: 400 }
+    );
+  }
+  const network: NetworkId = requested;
 
   if (cache.has(network)) {
     return NextResponse.json({ settlement: cache.get(network) });

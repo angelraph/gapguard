@@ -92,7 +92,8 @@ export async function GET(
         };
       });
 
-    const holdings = [...stockHoldings, ...preIpoHoldings];
+    // Leftover dust (fractions of a cent) only clutters the table with "0" rows.
+    const holdings = [...stockHoldings, ...preIpoHoldings].filter((h) => h.valueUsd >= 0.01);
 
     let obligation = null;
     try {
