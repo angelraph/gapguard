@@ -567,7 +567,8 @@ export default function RadarPage() {
           </div>
         </div>
         <p className="mx-auto mt-8 max-w-6xl text-xs text-text-muted">
-          Live price source: {data ? SOURCE_LABEL[data.source] : "loading…"}
+          Live at <span className="font-mono text-text-secondary">gapguard-alpha.vercel.app</span> · Live price
+          source: {data ? SOURCE_LABEL[data.source] : "loading…"}
         </p>
       </footer>
     </div>

@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/WalletButton";
 import type { PortfolioHolding } from "@/app/api/portfolio/[wallet]/route";
-import { useNetwork } from "@/lib/network";
 import { SiteHeader } from "@/components/SiteHeader";
+import { GapBar } from "@/components/GapBar";
 
 type ObligationSummary = {
   loanToValue: number;
@@ -31,17 +31,51 @@ function formatPct(fraction: number): string {
   return `${(fraction * 100).toFixed(1)}%`;
 }
 
+function formatGap(gap: number): string {
+  const pct = gap * 100;
+  if (Math.abs(pct) < 0.005) return "0.00%";
+  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`;
+}
+
+function shorten(addr: string): string {
+  return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
+}
 
 export default function PortfolioPage() {
   const { publicKey, connected } = useWallet();
-  const IS_DEVNET = useNetwork().config.isDevnet;
+  const [typed, setTyped] = useState("");
+  const [lookedUp, setLookedUp] = useState<string | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+
   const [data, setData] = useState<PortfolioResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [gapPct, setGapPct] = useState(-10);
 
+  // A looked-up public wallet wins over the connected one until cleared.
+  const address = lookedUp ?? (connected && publicKey ? publicKey.toBase58() : null);
+  const isLookup = lookedUp !== null;
+
+  function handleLookup(e: React.FormEvent) {
+    e.preventDefault();
+    const text = typed.trim();
+    try {
+      new PublicKey(text);
+      setLookedUp(text);
+      setLookupError(null);
+    } catch {
+      setLookupError("That doesn't look like a Solana wallet address. Paste the long address of any wallet.");
+    }
+  }
+
+  function clearLookup() {
+    setLookedUp(null);
+    setTyped("");
+    setLookupError(null);
+  }
+
   useEffect(() => {
-    if (!publicKey) {
+    if (!address) {
       setData(null);
       return;
     }
@@ -49,8 +83,9 @@ export default function PortfolioPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setData(null);
 
-    fetch(`/api/portfolio/${publicKey.toBase58()}`, { cache: "no-store" })
+    fetch(`/api/portfolio/${address}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((json: PortfolioResponse) => {
         if (cancelled) return;
@@ -61,7 +96,7 @@ export default function PortfolioPage() {
         }
       })
       .catch(() => {
-        if (!cancelled) setError("Couldn't load your holdings just now. Try again in a moment.");
+        if (!cancelled) setError("Couldn't load the holdings just now. Try again in a moment.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -70,7 +105,7 @@ export default function PortfolioPage() {
     return () => {
       cancelled = true;
     };
-  }, [publicKey]);
+  }, [address]);
 
   const totalValue = data?.holdings.reduce((sum, h) => sum + h.valueUsd, 0) ?? 0;
   const projectedChange = totalValue * (gapPct / 100);
@@ -93,121 +128,167 @@ export default function PortfolioPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-4 sm:px-10">
         <p className="eyebrow">Your risk</p>
         <h1 className="display mb-6 mt-3 text-4xl sm:text-5xl">
-          What a sudden jump would do to <span className="text-gradient">your wallet</span>
+          What a sudden jump would do to <span className="text-gradient">a wallet</span>
         </h1>
-        <div className="border border-border bg-bg-card p-6 text-center sm:p-8">
-          <p className="mb-4 text-text-secondary">
-            Connect your wallet to see the tokenized stocks you hold, and
-            what would happen to them if the price suddenly jumped.
-          </p>
-          <div className="flex justify-center">
-            <WalletButton />
+
+        <div className="glass p-6 sm:p-8">
+          <div className="grid gap-6 sm:grid-cols-2 sm:gap-8">
+            <div>
+              <p className="text-sm font-medium">Connect your wallet</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                See the tokenized stocks and pre-IPO tokens you hold.
+              </p>
+              <div className="mt-4">
+                <WalletButton />
+              </div>
+            </div>
+            <form onSubmit={handleLookup}>
+              <p className="text-sm font-medium">Or look up any public wallet</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                Read-only. Paste an address, nothing gets connected.
+              </p>
+              <div className="mt-4 flex gap-2">
+                <input
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  placeholder="Wallet address"
+                  aria-label="Wallet address to look up"
+                  className="min-w-0 flex-1 rounded-full border border-white/10 bg-bg-elevated px-4 py-2 font-mono text-sm"
+                />
+                <button type="submit" className="btn-ghost !px-5 !py-2 !text-sm">
+                  Look up
+                </button>
+              </div>
+              {lookupError && <p className="mt-2 text-xs text-amber-300">{lookupError}</p>}
+            </form>
           </div>
         </div>
 
-        {connected && loading && (
-          <p className="mt-8 text-center text-sm text-text-muted">Loading your holdings…</p>
-        )}
-
-        {connected && error && (
-          <div className="mt-8 border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
-            {error}
-          </div>
-        )}
-
-        {connected && !loading && !error && data && data.holdings.length === 0 && (
-          <div className="mt-8 text-center text-sm text-text-muted">
-            <p>
-              This wallet doesn&apos;t hold any of the tokens GapGuard tracks
-              right now: the 8 tokenized stocks (Apple, Alphabet, Robinhood,
-              MicroStrategy, Nvidia, QQQ, SPY, Tesla) or the 8 PreStocks
-              pre-IPO tokens (OpenAI, Anthropic, SpaceX, Anduril and more).
-            </p>
-            {IS_DEVNET && (
-              <p className="mx-auto mt-3 max-w-md border border-dashed border-border p-3 text-xs">
-                This page always reads real holdings on Solana&apos;s main
-                network — that part isn&apos;t a test. The Gap Insurance
-                devnet test wallet (used for the free test pool on the{" "}
-                <Link href="/protect" className="underline hover:text-brand">
-                  Protect
-                </Link>{" "}
-                page) is a separate, devnet-only address and has never held
-                real stock tokens, so it&apos;s expected to show empty here.
-                To see this page populated, connect a wallet that actually
-                holds one of the tracked tokens on mainnet.
-              </p>
+        {address && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/[0.04] px-4 py-3 text-sm">
+            <span className="text-text-secondary">
+              Showing{" "}
+              <span className="font-mono text-text-primary">{shorten(address)}</span>{" "}
+              {isLookup ? "(a public wallet you looked up, read-only)" : "(your connected wallet)"}
+            </span>
+            {isLookup && (
+              <button onClick={clearLookup} className="text-xs text-text-secondary underline hover:text-text-primary">
+                Clear
+              </button>
             )}
           </div>
         )}
 
-        {connected && !loading && !error && data && data.holdings.length > 0 && (
+        {address && loading && (
+          <p className="mt-8 text-center text-sm text-text-muted">Loading the holdings…</p>
+        )}
+
+        {address && error && (
+          <div className="mt-8 rounded-2xl border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+            {error}
+          </div>
+        )}
+
+        {address && !loading && !error && data && data.holdings.length === 0 && (
+          <div className="mt-8 rounded-2xl border border-dashed border-white/15 p-5 text-center text-sm text-text-muted">
+            <p>
+              This wallet doesn&apos;t hold any of the tokens GapGuard tracks: the
+              8 tokenized stocks (Apple, Alphabet, Robinhood, MicroStrategy,
+              Nvidia, QQQ, SPY, Tesla) or the 8 PreStocks pre-IPO tokens (OpenAI,
+              Anthropic, SpaceX, Anduril and more).
+            </p>
+            <p className="mt-2">Try looking up a wallet that holds some.</p>
+          </div>
+        )}
+
+        {address && !loading && !error && data && data.holdings.length > 0 && (
           <>
-            <div className="mt-8 overflow-x-auto border border-border">
-              <table className="w-full min-w-[480px] text-sm">
-                <thead className="bg-bg-elevated text-left text-text-secondary">
+            <div className="glass mt-8 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
+                <thead className="text-left text-text-secondary">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Stock</th>
-                    <th className="px-4 py-3 font-medium">Amount</th>
-                    <th className="px-4 py-3 font-medium">Value now</th>
+                    <th className="px-4 py-3 font-medium">Token</th>
+                    <th className="px-4 py-3 text-right font-medium">Amount</th>
+                    <th className="px-4 py-3 text-right font-medium">Gap</th>
+                    <th className="px-4 py-3 text-right font-medium">Value now</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.holdings.map((h) => (
-                    <tr key={h.mint} className="border-t border-border">
+                    <tr key={h.mint} className="border-t border-white/[0.06]">
                       <td className="px-4 py-3">
                         <span className="font-medium">{h.ticker}</span>
                         <div className="text-xs text-text-muted">
                           {h.name}
                           {h.kind === "pre-ipo" && (
-                            <span className="ml-2 border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                            <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide">
                               Pre-IPO
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono tabular-nums">
+                      <td className="px-4 py-3 text-right font-mono tabular-nums">
                         {h.amountTokens.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                       </td>
-                      <td className="px-4 py-3 font-mono tabular-nums">{formatUsd(h.valueUsd)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="inline-flex items-center justify-end gap-3">
+                          <GapBar
+                            gap={h.basis}
+                            max={h.kind === "pre-ipo" ? 0.35 : 0.05}
+                            warn={h.kind === "pre-ipo" ? 0.05 : 0.02}
+                          />
+                          <span
+                            className={`w-16 font-mono tabular-nums ${
+                              Math.abs(h.basis) > (h.kind === "pre-ipo" ? 0.05 : 0.02)
+                                ? "text-amber-300"
+                                : "text-text-secondary"
+                            }`}
+                          >
+                            {formatGap(h.basis)}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums">{formatUsd(h.valueUsd)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-border font-medium">
-                    <td className="px-4 py-3" colSpan={2}>
+                  <tr className="border-t border-white/10 font-medium">
+                    <td className="px-4 py-3" colSpan={3}>
                       Total
                     </td>
-                    <td className="px-4 py-3 font-mono tabular-nums">{formatUsd(totalValue)}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">{formatUsd(totalValue)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
-            <div className="mt-8 border border-border p-5 sm:p-6">
-              <label className="block text-sm text-text-secondary">
-                If every stock you hold suddenly moved by {gapPct > 0 ? "+" : ""}
-                {gapPct}%, here&apos;s what would happen:
+            <div className="glass mt-6 p-5 sm:p-6">
+              <label className="block text-sm text-text-secondary" htmlFor="risk-slider">
+                If every token here suddenly moved by{" "}
+                <span className="font-mono text-text-primary">
+                  {gapPct > 0 ? "+" : ""}
+                  {gapPct}%
+                </span>
+                , here&apos;s what would happen:
               </label>
               <input
+                id="risk-slider"
                 type="range"
                 min={-20}
                 max={20}
                 value={gapPct}
                 onChange={(e) => setGapPct(Number(e.target.value))}
-                className="mt-3 w-full accent-brand"
+                className="mt-4 w-full"
               />
 
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="bg-bg-card p-4">
-                  <p className="text-xs uppercase tracking-wide text-text-muted">
-                    Your holdings would be worth
-                  </p>
-                  <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">
-                    {formatUsd(projectedValue)}
-                  </p>
+                <div className="rounded-2xl bg-white/[0.05] p-4">
+                  <p className="text-xs uppercase tracking-wide text-text-muted">The holdings would be worth</p>
+                  <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{formatUsd(projectedValue)}</p>
                   <p
                     className={`mt-1 font-mono text-sm tabular-nums ${
-                      projectedChange < 0 ? "text-red-400" : "text-mint"
+                      projectedChange < 0 ? "text-amber-300" : "text-mint"
                     }`}
                   >
                     {projectedChange >= 0 ? "+" : ""}
@@ -215,10 +296,8 @@ export default function PortfolioPage() {
                   </p>
                 </div>
 
-                <div className="bg-bg-card p-4">
-                  <p className="text-xs uppercase tracking-wide text-text-muted">
-                    Kamino loan safety
-                  </p>
+                <div className="rounded-2xl bg-white/[0.05] p-4">
+                  <p className="text-xs uppercase tracking-wide text-text-muted">Kamino loan safety</p>
                   {data.obligation && projectedLtv !== null ? (
                     <>
                       <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">
@@ -230,9 +309,7 @@ export default function PortfolioPage() {
                       </p>
                       <p
                         className={`mt-1 text-sm ${
-                          projectedLtv >= data.obligation.liquidationLtv
-                            ? "text-red-400"
-                            : "text-mint"
+                          projectedLtv >= data.obligation.liquidationLtv ? "text-amber-300" : "text-mint"
                         }`}
                       >
                         {projectedLtv >= data.obligation.liquidationLtv
@@ -242,8 +319,7 @@ export default function PortfolioPage() {
                     </>
                   ) : (
                     <p className="mt-1 text-sm text-text-muted">
-                      You don&apos;t have a loan against these stocks on
-                      Kamino, so there&apos;s no liquidation risk to show.
+                      No loan against these tokens on Kamino, so there&apos;s no liquidation risk to show.
                     </p>
                   )}
                 </div>
