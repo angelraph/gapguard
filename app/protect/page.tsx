@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import BN from "bn.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { WalletButton } from "@/components/WalletButton";
 import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from "@solana/spl-token";
 import { getBuyQuote, buildBuyTransaction, getProtectionMint } from "@/lib/meteora/quote";
 import type { SettlementResult } from "@/lib/meteora/settlement";
@@ -312,7 +312,7 @@ export default function ProtectPage() {
           {POOL_ADDRESS && windowIsOpen && (
             <div className="mt-6 space-y-4">
               <div className="flex justify-center">
-                <WalletMultiButton />
+                <WalletButton />
               </div>
 
               {connected && protectionBalance !== null && (
@@ -491,6 +491,62 @@ export default function ProtectPage() {
             </div>
           )}
         </div>
+
+        {POOL_ADDRESS && (
+          <div className="glass mt-4 p-5 sm:p-6">
+            <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-text-muted">
+              On-chain proof ({IS_DEVNET ? "devnet" : "mainnet"})
+            </p>
+            <dl className="mt-3 space-y-2.5 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <dt className="text-text-secondary">
+                  The pool <span className="ml-1 font-mono text-xs text-text-muted">
+                    {POOL_ADDRESS.slice(0, 6)}…{POOL_ADDRESS.slice(-6)}
+                  </span>
+                </dt>
+                <dd className="flex gap-2">
+                  <a
+                    className="btn-ghost !px-3.5 !py-1 !text-xs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={`https://explorer.solana.com/address/${POOL_ADDRESS}${IS_DEVNET ? "?cluster=devnet" : ""}`}
+                  >
+                    View pool on Explorer
+                  </a>
+                  <a
+                    className="btn-ghost !px-3.5 !py-1 !text-xs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={`https://solscan.io/account/${POOL_ADDRESS}${IS_DEVNET ? "?cluster=devnet" : ""}`}
+                  >
+                    Solscan
+                  </a>
+                </dd>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <dt className="text-text-secondary">The transaction that created it</dt>
+                <dd className="flex gap-2">
+                  <a
+                    className="btn-ghost !px-3.5 !py-1 !text-xs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={explorerUrl(config.creationTx)}
+                  >
+                    View on Explorer
+                  </a>
+                  <a
+                    className="btn-ghost !px-3.5 !py-1 !text-xs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={solscanUrl(config.creationTx)}
+                  >
+                    Solscan
+                  </a>
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
       </main>
     </div>
   );

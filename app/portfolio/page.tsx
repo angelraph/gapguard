@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { WalletButton } from "@/components/WalletButton";
 import type { PortfolioHolding } from "@/app/api/portfolio/[wallet]/route";
 import { useNetwork } from "@/lib/network";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -101,7 +101,7 @@ export default function PortfolioPage() {
             what would happen to them if the price suddenly jumped.
           </p>
           <div className="flex justify-center">
-            <WalletMultiButton />
+            <WalletButton />
           </div>
         </div>
 

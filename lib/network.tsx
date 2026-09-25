@@ -18,6 +18,8 @@ export type NetworkConfig = {
   isDevnet: boolean;
   rpc: string;
   pool: string | undefined;
+  /** The transaction that created the pool, for the "on-chain proof" links. */
+  creationTx: string;
   market: (typeof PROTECTION_MARKETS)[NetworkId];
 };
 
@@ -38,6 +40,8 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     isDevnet: false,
     rpc: MAINNET_RPC,
     pool: MAINNET_POOL,
+    creationTx:
+      "xwscc3W7rhmLB7q6fk1E2vUzLYo4oxuLqNSGtoWdSNbZuYKnjTPHcKek7Yi51DCwyHLfMsRGuqZYvRQqooY1prT",
     market: PROTECTION_MARKETS.mainnet,
   },
   devnet: {
@@ -46,6 +50,8 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     isDevnet: true,
     rpc: DEVNET_RPC,
     pool: DEVNET_POOL,
+    creationTx:
+      "4BQQeQqjnbbc2beFXwfdPunmhfBPsQJRfWsg84iNqmzZxBytanZPE3Y4F3G2tjty2sUd1AtpUZyqnBV5VJFzCh6",
     market: PROTECTION_MARKETS.devnet,
   },
 };
