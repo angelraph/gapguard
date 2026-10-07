@@ -47,9 +47,13 @@ export default function PortfolioPage() {
   const [lookedUp, setLookedUp] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
-  const [data, setData] = useState<PortfolioResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Each answer remembers which wallet it was for, so switching wallets never
+  // shows the previous wallet's holdings.
+  const [result, setResult] = useState<{
+    address: string;
+    data: PortfolioResponse | null;
+    error: string | null;
+  } | null>(null);
   const [gapPct, setGapPct] = useState(-10);
 
   // A looked-up public wallet wins over the connected one until cleared.
@@ -74,32 +78,33 @@ export default function PortfolioPage() {
     setLookupError(null);
   }
 
+  const current = result && result.address === address ? result : null;
+  const data = current?.data ?? null;
+  const error = current?.error ?? null;
+  const loading = address !== null && current === null;
+
   useEffect(() => {
-    if (!address) {
-      setData(null);
-      return;
-    }
+    if (!address) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setData(null);
-
     fetch(`/api/portfolio/${address}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((json: PortfolioResponse) => {
         if (cancelled) return;
         if (json.error) {
-          setError(json.error);
+          setResult({ address, data: null, error: json.error });
         } else {
-          setData(json);
+          setResult({ address, data: json, error: null });
         }
       })
       .catch(() => {
-        if (!cancelled) setError("Couldn't load the holdings just now. Try again in a moment.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setResult({
+            address,
+            data: null,
+            error: "Couldn't load the holdings just now. Try again in a moment.",
+          });
+        }
       });
 
     return () => {

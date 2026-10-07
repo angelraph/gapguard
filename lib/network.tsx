@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState, useSyncExternalStore } from "react";
 import { PROTECTION_MARKETS, type NetworkId } from "@/lib/meteora/dbcPool";
 
 /**
@@ -69,21 +69,24 @@ const NetworkContext = createContext<NetworkContextValue>({
   setNetwork: () => {},
 });
 
-export function NetworkProvider({ children }: { children: React.ReactNode }) {
-  const [id, setId] = useState<NetworkId>(DEFAULT_NETWORK);
+// The saved or requested choice (?network= in the link wins over the saved one).
+// Read through useSyncExternalStore so the server and first client render agree.
+function readWantedNetwork(): NetworkId | null {
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("network");
+    const wanted = fromUrl ?? window.localStorage.getItem(STORAGE_KEY);
+    return wanted === "mainnet" || wanted === "devnet" ? wanted : null;
+  } catch {
+    // Storage can be blocked; the default is fine.
+    return null;
+  }
+}
+const noSubscribe = () => () => {};
 
-  // Read the saved or requested choice after mount, so server and first
-  // client render agree.
-  useEffect(() => {
-    try {
-      const fromUrl = new URLSearchParams(window.location.search).get("network");
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      const wanted = fromUrl ?? saved;
-      if (wanted === "mainnet" || wanted === "devnet") setId(wanted);
-    } catch {
-      // Storage can be blocked; the default is fine.
-    }
-  }, []);
+export function NetworkProvider({ children }: { children: React.ReactNode }) {
+  const wanted = useSyncExternalStore(noSubscribe, readWantedNetwork, () => null);
+  const [picked, setId] = useState<NetworkId | null>(null);
+  const id = picked ?? wanted ?? DEFAULT_NETWORK;
 
   function setNetwork(next: NetworkId) {
     setId(next);

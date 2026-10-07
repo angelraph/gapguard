@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const OPEN_HOURS_PER_WEEK = 32.5; // 9:30am to 4:00pm ET, five days
@@ -30,6 +30,17 @@ function nowInNewYork(): { day: number; hour: number } | null {
   }
 }
 
+// The current New York hour as "day:hour". A plain string keeps React from
+// re-rendering unless the hour actually changes. Re-checked every minute.
+function subscribeMinute(onChange: () => void) {
+  const id = setInterval(onChange, 60_000);
+  return () => clearInterval(id);
+}
+function nowKey(): string | null {
+  const now = nowInNewYork();
+  return now ? `${now.day}:${now.hour}` : null;
+}
+
 /**
  * One week, hour by hour, New York time. Lime cells are hours the real US
  * stock market is open. The bar above each day is the token, which trades in
@@ -37,13 +48,9 @@ function nowInNewYork(): { day: number; hour: number } | null {
  * nothing checks it.
  */
 export function WeekStrip() {
-  const [now, setNow] = useState<{ day: number; hour: number } | null>(null);
-
-  useEffect(() => {
-    setNow(nowInNewYork());
-    const id = setInterval(() => setNow(nowInNewYork()), 60_000);
-    return () => clearInterval(id);
-  }, []);
+  // The server has no clock for the viewer, so it renders without a "now" marker.
+  const key = useSyncExternalStore(subscribeMinute, nowKey, () => null);
+  const now = key ? { day: Number(key.split(":")[0]), hour: Number(key.split(":")[1]) } : null;
 
   const openPct = Math.round((OPEN_HOURS_PER_WEEK / 168) * 100);
 

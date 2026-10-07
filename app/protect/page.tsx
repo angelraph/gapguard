@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import BN from "bn.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -8,6 +7,7 @@ import { WalletButton } from "@/components/WalletButton";
 import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from "@solana/spl-token";
 import { getBuyQuote, buildBuyTransaction, getProtectionMint } from "@/lib/meteora/quote";
 import type { SettlementResult } from "@/lib/meteora/settlement";
+import type { Connection, PublicKey } from "@solana/web3.js";
 import { NETWORKS, useNetwork } from "@/lib/network";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -50,6 +50,24 @@ function friendlyBuyError(err: unknown, IS_DEVNET: boolean): string {
   return `Something went wrong buying protection (${raw}).`;
 }
 
+const PROTECTION_DECIMALS = 6;
+
+/** How many protection tokens this wallet holds: 0 if none, null if the lookup failed. */
+async function fetchProtectionBalance(
+  connection: Connection,
+  pool: string,
+  owner: PublicKey,
+): Promise<number | null> {
+  try {
+    const mint = await getProtectionMint(connection, pool);
+    const ata = await getAssociatedTokenAddress(mint, owner);
+    const account = await getAccount(connection, ata);
+    return Number(account.amount) / 10 ** PROTECTION_DECIMALS;
+  } catch (err) {
+    return err instanceof TokenAccountNotFoundError ? 0 : null;
+  }
+}
+
 export default function ProtectPage() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction, connected } = useWallet();
@@ -59,69 +77,74 @@ export default function ProtectPage() {
   const PROTECTION_MARKET = config.market;
 
   const [usdcAmount, setUsdcAmount] = useState(10);
-  const [quoteTokens, setQuoteTokens] = useState<number | null>(null);
+  const [quote, setQuote] = useState<number | null>(null);
+  const quoteTokens = POOL_ADDRESS && usdcAmount > 0 ? quote : null;
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [buyStatus, setBuyStatus] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
-  const [settlement, setSettlement] = useState<SettlementResult | null>(null);
+  // Tagged with its network so a switch never shows the other network's result.
+  const [settlementFor, setSettlementFor] = useState<{
+    network: string;
+    value: SettlementResult | null;
+  } | null>(null);
+  const settlement = settlementFor?.network === config.id ? settlementFor.value : null;
   const [faucetStatus, setFaucetStatus] = useState<string | null>(null);
   const [protectionBalance, setProtectionBalance] = useState<number | null>(null);
-  const PROTECTION_DECIMALS = 6;
 
-  async function refreshProtectionBalance() {
-    if (!POOL_ADDRESS || !publicKey) {
-      setProtectionBalance(null);
-      return;
-    }
-    try {
-      const mint = await getProtectionMint(connection, POOL_ADDRESS);
-      const ata = await getAssociatedTokenAddress(mint, publicKey);
-      const account = await getAccount(connection, ata);
-      setProtectionBalance(Number(account.amount) / 10 ** PROTECTION_DECIMALS);
-    } catch (err) {
-      if (err instanceof TokenAccountNotFoundError) {
-        setProtectionBalance(0);
-      } else {
-        setProtectionBalance(null);
-      }
-    }
-  }
-
-  useEffect(() => {
+  // A different wallet or pool starts from a clean slate. Done during render
+  // (React's recommended way to reset state when an input changes).
+  const walletKey = `${publicKey?.toBase58() ?? ""}|${POOL_ADDRESS ?? ""}`;
+  const [prevWalletKey, setPrevWalletKey] = useState(walletKey);
+  if (walletKey !== prevWalletKey) {
+    setPrevWalletKey(walletKey);
     setProtectionBalance(null);
     setTxSignature(null);
     setBuyError(null);
-    refreshProtectionBalance();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }
+
+  useEffect(() => {
+    if (!POOL_ADDRESS || !publicKey) return;
+    let cancelled = false;
+    fetchProtectionBalance(connection, POOL_ADDRESS, publicKey).then((balance) => {
+      if (!cancelled) setProtectionBalance(balance);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [publicKey, connection, POOL_ADDRESS]);
 
   useEffect(() => {
-    setSettlement(null);
-    fetch(`/api/protect/settlement?network=${config.id}`)
+    const network = config.id;
+    let cancelled = false;
+    fetch(`/api/protect/settlement?network=${network}`)
       .then((res) => res.json())
-      .then((json) => setSettlement(json.settlement ?? null))
-      .catch(() => setSettlement(null));
+      .then((json) => {
+        if (!cancelled) setSettlementFor({ network, value: json.settlement ?? null });
+      })
+      .catch(() => {
+        if (!cancelled) setSettlementFor({ network, value: null });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [config.id]);
 
   useEffect(() => {
-    if (!POOL_ADDRESS || usdcAmount <= 0) {
-      setQuoteTokens(null);
-      return;
-    }
+    if (!POOL_ADDRESS || usdcAmount <= 0) return;
     let cancelled = false;
     const usdcLamports = new BN(Math.round(usdcAmount * 10 ** USDC_DECIMALS));
 
     getBuyQuote(connection, POOL_ADDRESS, usdcLamports)
       .then((q) => {
         if (!cancelled) {
-          setQuoteTokens(q.amountOutDisplay);
+          setQuote(q.amountOutDisplay);
           setQuoteError(null);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setQuoteTokens(null);
+          setQuote(null);
           setQuoteError(err instanceof Error ? err.message : "Couldn't get a quote.");
         }
       });
@@ -159,7 +182,7 @@ export default function ProtectPage() {
 
       setTxSignature(signature);
       setBuyStatus(null);
-      refreshProtectionBalance();
+      setProtectionBalance(await fetchProtectionBalance(connection, POOL_ADDRESS, publicKey));
     } catch (err) {
       setBuyError(friendlyBuyError(err, IS_DEVNET));
       setBuyStatus(null);
