@@ -115,6 +115,8 @@ export default function RadarPage() {
   const [data, setData] = useState<RadarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preStocks, setPreStocks] = useState<PreStock[] | null>(null);
+  // Above 0 only while PreStocks is down and its last good prices are shown.
+  const [preStocksAge, setPreStocksAge] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,7 +125,10 @@ export default function RadarPage() {
       try {
         const res = await fetch("/api/prestocks", { cache: "no-store" });
         const json = await res.json();
-        if (!cancelled && json.stocks) setPreStocks(json.stocks);
+        if (!cancelled && json.stocks) {
+          setPreStocks(json.stocks);
+          setPreStocksAge(json.ageMinutes ?? 0);
+        }
       } catch {
         // The pre-IPO section is additive; if it fails, the rest still works.
       }
@@ -417,6 +422,13 @@ export default function RadarPage() {
                 </tbody>
               </table>
             </div>
+            {preStocksAge >= 1 && (
+              <p className="mt-3 text-xs text-amber-300">
+                PreStocks is briefly unavailable, so these are the last prices we got,{" "}
+                {preStocksAge === 1 ? "1 minute" : `${preStocksAge} minutes`} ago. They update again as soon
+                as it&apos;s back.
+              </p>
+            )}
             <p className="mt-3 text-xs text-text-muted">
               Data from PreStocks&apos; public API, live. A positive gap means
               the token trades above the issuer&apos;s mark, a negative gap
