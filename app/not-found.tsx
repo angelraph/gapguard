@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { SiteHeader } from "@/components/SiteHeader";
 
 export default function NotFound() {
   return (
     <div className="flex flex-1 flex-col text-text-primary">
-      <SiteHeader />
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-4 pb-24 sm:px-10">
         <p className="eyebrow">Page not found</p>
         <h1 className="display mt-3 text-4xl sm:text-5xl">

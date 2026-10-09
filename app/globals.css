@@ -278,3 +278,23 @@ input.border.border-border {
     transition: none !important;
   }
 }
+
+/* A small rounded status pill (market open/closed, system state). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Horizontal tab rows that scroll without showing a scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

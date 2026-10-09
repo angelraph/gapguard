@@ -93,7 +93,7 @@ export function cushionMath(input: {
   return { dropToLiquidation, repayToSafeUsd, addToSafeUsd };
 }
 
-function toRisk(
+export function toRisk(
   obligation: KaminoObligation,
   symbolOf: (reserve: string) => string
 ): LoanRisk {
@@ -146,7 +146,7 @@ function toRisk(
  * provider as backup means one bad minute doesn't hide a loan or skip an
  * alert. Throws only if every connection fails.
  */
-const BACKUP_RPC = "https://solana-rpc.publicnode.com";
+export const BACKUP_RPC = "https://solana-rpc.publicnode.com";
 
 /** Every loan this wallet has on the xStocks market. Empty if none. */
 export async function fetchLoanRisks(rpcUrl: string, walletAddress: string): Promise<LoanRisk[]> {

@@ -49,3 +49,24 @@ export function newYorkClock(now: Date = new Date()): {
     date: `${get("year")}-${get("month")}-${get("day")}`,
   };
 }
+
+const DAY_INDEX: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+const OPEN_MIN = 9 * 60 + 30;
+const CLOSE_MIN = 16 * 60;
+
+/**
+ * Is the regular US session open, and how many minutes until that changes?
+ * Ignores exchange holidays and a daylight-saving switch inside the wait,
+ * both of which only shift the countdown, never the open/closed answer by
+ * more than an hour.
+ */
+export function marketCountdown(now: Date = new Date()): { open: boolean; minutesUntilChange: number } {
+  const { weekday, minutes } = newYorkClock(now);
+  const day = DAY_INDEX[weekday] ?? 0;
+  if (day < 5 && minutes >= OPEN_MIN && minutes < CLOSE_MIN) {
+    return { open: true, minutesUntilChange: CLOSE_MIN - minutes };
+  }
+  let daysAhead = day < 5 && minutes < OPEN_MIN ? 0 : 1;
+  while ((day + daysAhead) % 7 >= 5) daysAhead++;
+  return { open: false, minutesUntilChange: daysAhead * 1440 + OPEN_MIN - minutes };
+}

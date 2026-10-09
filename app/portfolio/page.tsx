@@ -5,7 +5,6 @@ import { PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/WalletButton";
 import type { PortfolioHolding } from "@/app/api/portfolio/[wallet]/route";
-import { SiteHeader } from "@/components/SiteHeader";
 import { GapBar } from "@/components/GapBar";
 import { LoanCard } from "@/components/LoanCard";
 import type { LoanRisk } from "@/lib/kamino/portfolio";
@@ -147,9 +146,8 @@ export default function PortfolioPage() {
 
   return (
     <div className="flex flex-1 flex-col text-text-primary">
-      <SiteHeader active="risk" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-4 sm:px-10">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-12 pt-8 sm:px-8">
         <p className="eyebrow">Your risk</p>
         <h1 className="display mb-6 mt-3 text-4xl sm:text-5xl">
           What a sudden jump would do to <span className="text-gradient">a wallet</span>

@@ -9,7 +9,6 @@ import { getBuyQuote, buildBuyTransaction, getProtectionMint } from "@/lib/meteo
 import type { SettlementResult } from "@/lib/meteora/settlement";
 import type { Connection, PublicKey } from "@solana/web3.js";
 import { NETWORKS, useNetwork } from "@/lib/network";
-import { SiteHeader } from "@/components/SiteHeader";
 
 /**
  * Gap Insurance (layer 3): a real buy flow against the Meteora DBC SDK,
@@ -216,9 +215,8 @@ export default function ProtectPage() {
 
   return (
     <div className="flex flex-1 flex-col text-text-primary">
-      <SiteHeader active="insurance" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-4 sm:px-10">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-12 pt-8 sm:px-8">
         <p className="eyebrow">Gap Insurance</p>
         <h1 className="display mt-3 text-4xl sm:text-5xl">
           Insure one weekend against <span className="text-gradient">a big price jump</span>

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CURATED_STOCKS } from "@/lib/stocks/curatedList";
 import { getMarketData } from "@/lib/marketData";
-import { SiteHeader } from "@/components/SiteHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +40,9 @@ export default async function StockPage({
 
   return (
     <div className="flex flex-1 flex-col text-text-primary">
-      <SiteHeader active="radar" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-4 sm:px-10">
-        <Link href="/#radar" className="text-sm text-text-secondary hover:text-mint">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-12 pt-8 sm:px-8">
+        <Link href="/radar" className="text-sm text-text-secondary hover:text-mint">
           ← Back to the Radar
         </Link>
         <p className="eyebrow mt-6">Tokenized stock</p>

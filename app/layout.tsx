@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import { Providers } from "./providers";
+import { AppShell } from "@/components/AppShell";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -20,9 +21,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GapGuard: gap risk radar for tokenized stocks on Solana",
+  title: "GapGuard: weekend gap risk for tokenized stocks on Solana",
   description:
-    "Live price-gap tracking, wallet risk view and weekend gap insurance for tokenized stocks trading 24/7 on Solana.",
+    "See how far your tokenized stocks can fall before your Kamino loan is liquidated, and get free Telegram warnings before the weekend gap hits.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -32,7 +33,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${dmSans.variable} ${bricolage.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );

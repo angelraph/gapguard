@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { getCensus, refreshCensus } from "@/lib/kamino/census";
 import { fetchLoanRisks, type LoanRisk } from "@/lib/kamino/portfolio";
 import { newYorkClock } from "@/lib/marketData/session";
 import { planAlerts } from "@/lib/alerts/rules";
@@ -77,6 +78,12 @@ export async function GET(req: Request) {
 
   const summary = { at: new Date().toISOString(), chats: records.length, wallets: wallets.length, sent, errors };
   await setLastRun(summary);
+
+  // Keep the command center's shock map fresh, after this response is sent.
+  after(async () => {
+    const { stale } = await getCensus(rpcUrl).catch(() => ({ stale: true }));
+    if (stale) await refreshCensus(rpcUrl).catch((err) => console.error("census refresh failed:", err));
+  });
   return NextResponse.json(summary, { headers: { "Cache-Control": "no-store" } });
 }
 

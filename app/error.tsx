@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { SiteHeader } from "@/components/SiteHeader";
 
 /** Shown if something unexpected breaks while a page is running. The rest of
  * the site keeps working, and one click retries. */
@@ -19,7 +18,6 @@ export default function ErrorPage({
 
   return (
     <div className="flex flex-1 flex-col text-text-primary">
-      <SiteHeader />
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-4 pb-24 sm:px-10">
         <p className="eyebrow">Something went wrong</p>
         <h1 className="display mt-3 text-4xl sm:text-5xl">

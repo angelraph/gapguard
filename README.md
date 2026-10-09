@@ -27,13 +27,15 @@ If you just hold the token, a gap is a nasty surprise. If you borrowed against i
 
 ## Who it's for
 
-These are real numbers from Kamino's xStocks lending market, read on October 8, 2026:
+These are real numbers from Kamino's xStocks lending market, read on October 9, 2026, loan by loan:
 
-1. **1,562 people** have open loans backed by tokenized stocks, with about **$5.4 million** borrowed.
-2. **108 of them**, with about **$560,000** borrowed, would be liquidated by a drop of 15% or less.
-3. **46** would be liquidated by a drop of 10% or less. **9** by a drop of under 5%.
+1. **1,563 open loans** sit on tokenized stocks, with about **$5.4 million** borrowed.
+2. **69 of them**, with about **$421,000** borrowed, would be liquidated if stocks opened **15%** lower.
+3. **31**, with about **$171,000** borrowed, would go at a **10%** drop. **5** already break at **4%**.
 
 Tesla, MicroStrategy and Robinhood make moves like that over a weekend more often than most people think. These borrowers are who GapGuard is built for first.
+
+You don't have to take these numbers on trust. The **Monday shock map** on the [command center](https://gapguard-alpha.vercel.app) recounts them from every loan on Kamino every 15 minutes. Pick a drop and it shows how many real borrowers that move would liquidate.
 
 It's also for anyone holding tokenized stocks who wants to see, at a glance, how far their token has wandered from the real price while the market is shut.
 
@@ -49,7 +51,9 @@ It's also for anyone holding tokenized stocks who wants to see, at a glance, how
 
 Every message tells you what to do and links straight to Kamino. Each warning goes out once, so it never turns into noise. No app to install, no account to make.
 
-**The gap, live.** The home page shows how far each of 8 tokenized stocks (Apple, Alphabet, Nvidia, Tesla, Robinhood, MicroStrategy, SPY and QQQ) has drifted from the real stock right now, whether the real market is open, and how much money sits as collateral on Kamino. It does the same for pre-IPO tokens like OpenAI and SpaceX, measured against the issuer's own price.
+**A live command center.** The home page shows whether the US market is open and when that changes, how much stock collateral sits on Kamino, the Monday shock map, whether the alerts are running, and the widest gaps right now. Every page is numbered 01 to 06 in a sidebar (swipeable tabs on a phone), and each one ends with a button to the next, so a first-time visitor can walk through the whole thing in order.
+
+**The gap, live.** The Gap radar page shows how far each of 8 tokenized stocks (Apple, Alphabet, Nvidia, Tesla, Robinhood, MicroStrategy, SPY and QQQ) has drifted from the real stock right now, whether the real market is open, and how much money sits as collateral on Kamino. It does the same for pre-IPO tokens like OpenAI and SpaceX, measured against the issuer's own price.
 
 **Weekend Gap Insurance, as a working demo.** Pay a small fee before the weekend. If the stock moves more than 3% by Monday's open, you get paid. It has already run on mainnet with real money: over the weekend of September 25 to 28, Tesla moved 1.04%, under the trigger, so no payout. The result is written on-chain with Pyth's prices so anyone can check it. Real insurance needs money set aside to pay claims, so it stays a demo for now and the free warnings come first.
 
