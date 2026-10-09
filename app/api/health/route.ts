@@ -3,12 +3,18 @@ import { Connection } from "@solana/web3.js";
 import { getMarketData } from "@/lib/marketData";
 import { fetchPreStocks } from "@/lib/prestocks/client";
 import { fetchPoolState } from "@/lib/meteora/quote";
+import { getLastRun } from "@/lib/alerts/store";
+import { botToken, botUsername } from "@/lib/alerts/telegram";
+
+// The scheduler runs every 5 minutes; three missed runs in a row is a problem.
+const ALERTS_STALE_MS = 15 * 60 * 1000;
 
 /**
  * GET /api/health
  *
  * A quick check of everything the site depends on, so a problem shows up
- * here first: live prices, the pre-IPO feed, and both Gap Insurance pools.
+ * here first: live prices, the pre-IPO feed, both Gap Insurance pools and,
+ * once the Telegram bot is set up, the alert scheduler.
  * Contains no secrets, only pass or fail and a few counts.
  */
 
@@ -54,7 +60,17 @@ export async function GET() {
     }),
   ]);
 
-  const checks = { prices, preIpo, mainnetPool: mainnet, devnetPool: devnet };
+  const checks: Record<string, Check> = { prices, preIpo, mainnetPool: mainnet, devnetPool: devnet };
+  if (botToken()) {
+    checks.alerts = await check(async () => {
+      if (!(await botUsername())) throw new Error("Telegram bot token rejected");
+      const last = await getLastRun();
+      if (!last) throw new Error("the scheduler has never run");
+      const age = Date.now() - new Date(last.at).getTime();
+      if (age > ALERTS_STALE_MS) throw new Error(`last run ${Math.round(age / 60000)} minutes ago`);
+      return `last run ${Math.round(age / 60000)} min ago, watching ${last.wallets} wallets${last.errors ? `, ${last.errors} errors` : ""}`;
+    });
+  }
   const ok = Object.values(checks).every((c) => c.ok);
   return NextResponse.json(
     { ok, checkedAt: new Date().toISOString(), checks },

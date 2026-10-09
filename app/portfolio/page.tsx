@@ -1,26 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/WalletButton";
 import type { PortfolioHolding } from "@/app/api/portfolio/[wallet]/route";
 import { SiteHeader } from "@/components/SiteHeader";
 import { GapBar } from "@/components/GapBar";
-
-type ObligationSummary = {
-  loanToValue: number;
-  liquidationLtv: number;
-  deposits: { mint: string; amountTokens: number; valueUsd: number }[];
-  borrows: { mint: string; amountTokens: number; valueUsd: number }[];
-};
+import { LoanCard } from "@/components/LoanCard";
+import type { LoanRisk } from "@/lib/kamino/portfolio";
 
 type PortfolioResponse = {
   source: "pyth" | "free";
   holdings: PortfolioHolding[];
-  obligation: ObligationSummary | null;
+  /** Null when Kamino couldn't be read just now. */
+  loans: LoanRisk[] | null;
+  /** The Telegram bot's username, or null if alerts aren't set up. */
+  alertsBot: string | null;
   error?: string;
 };
+
+// A wallet passed in the link (?wallet=...), e.g. from a Telegram alert.
+// Read through useSyncExternalStore so the server and first render agree.
+function readWalletParam(): string | null {
+  try {
+    const w = new URLSearchParams(window.location.search).get("wallet");
+    if (!w) return null;
+    new PublicKey(w);
+    return w;
+  } catch {
+    return null;
+  }
+}
+const noSubscribe = () => () => {};
 
 function formatUsd(n: number): string {
   const sign = n < 0 ? "-" : "";
@@ -44,7 +56,10 @@ function shorten(addr: string): string {
 export default function PortfolioPage() {
   const { publicKey, connected } = useWallet();
   const [typed, setTyped] = useState("");
-  const [lookedUp, setLookedUp] = useState<string | null>(null);
+  // undefined: nothing chosen yet, so use the wallet from the link if any.
+  const [lookedUpState, setLookedUp] = useState<string | null | undefined>(undefined);
+  const walletParam = useSyncExternalStore(noSubscribe, readWalletParam, () => null);
+  const lookedUp = lookedUpState === undefined ? walletParam : lookedUpState;
   const [lookupError, setLookupError] = useState<string | null>(null);
 
   // Each answer remembers which wallet it was for, so switching wallets never
@@ -74,6 +89,7 @@ export default function PortfolioPage() {
 
   function clearLookup() {
     setLookedUp(null);
+    if (walletParam) window.history.replaceState(null, "", window.location.pathname);
     setTyped("");
     setLookupError(null);
   }
@@ -116,14 +132,17 @@ export default function PortfolioPage() {
   const projectedChange = totalValue * (gapPct / 100);
   const projectedValue = totalValue + projectedChange;
 
-  const projectedLtv =
-    data?.obligation && data.obligation.deposits.length > 0
-      ? (() => {
-          const totalBorrowUsd = data.obligation.borrows.reduce((s, b) => s + b.valueUsd, 0);
-          const totalDepositUsd = data.obligation.deposits.reduce((s, d) => s + d.valueUsd, 0);
-          const projectedDepositUsd = totalDepositUsd * (1 + gapPct / 100);
-          return projectedDepositUsd > 0 ? totalBorrowUsd / projectedDepositUsd : null;
-        })()
+  const loans = data?.loans ?? [];
+  const alertsHref = data?.alertsBot && address ? `https://t.me/${data.alertsBot}?start=${address}` : null;
+
+  // The loan closest to liquidation, and how much room it would have left
+  // after the slider's move (the drop is measured from today's price).
+  const riskiest = loans
+    .filter((l) => l.dropToLiquidation !== null)
+    .sort((a, b) => a.dropToLiquidation! - b.dropToLiquidation!)[0];
+  const roomAfterMove =
+    riskiest && riskiest.dropToLiquidation !== null
+      ? 1 - (1 - riskiest.dropToLiquidation) / (1 + gapPct / 100)
       : null;
 
   return (
@@ -194,7 +213,21 @@ export default function PortfolioPage() {
           </div>
         )}
 
-        {address && !loading && !error && data && data.holdings.length === 0 && (
+        {address && !loading && !error && data && loans.length > 0 && (
+          <div className="mt-8 space-y-4">
+            {loans.map((loan) => (
+              <LoanCard key={loan.obligation} loan={loan} alertsHref={alertsHref} />
+            ))}
+          </div>
+        )}
+
+        {address && !loading && !error && data && data.loans === null && (
+          <p className="mt-6 text-center text-xs text-text-muted">
+            Couldn&apos;t read Kamino loans just now, so any loan isn&apos;t shown. Try again in a minute.
+          </p>
+        )}
+
+        {address && !loading && !error && data && data.holdings.length === 0 && loans.length === 0 && (
           <div className="mt-8 rounded-2xl border border-dashed border-white/15 p-5 text-center text-sm text-text-muted">
             <p>
               This wallet doesn&apos;t hold any of the tokens GapGuard tracks: the
@@ -303,28 +336,26 @@ export default function PortfolioPage() {
 
                 <div className="rounded-2xl bg-white/[0.05] p-4">
                   <p className="text-xs uppercase tracking-wide text-text-muted">Kamino loan safety</p>
-                  {data.obligation && projectedLtv !== null ? (
+                  {roomAfterMove !== null ? (
                     <>
                       <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">
-                        {formatPct(projectedLtv)}
-                        <span className="text-sm font-normal text-text-muted">
-                          {" "}
-                          of {formatPct(data.obligation.liquidationLtv)} limit
-                        </span>
+                        {roomAfterMove <= 0 ? "0%" : formatPct(roomAfterMove)}
+                        <span className="text-sm font-normal text-text-muted"> room left</span>
                       </p>
-                      <p
-                        className={`mt-1 text-sm ${
-                          projectedLtv >= data.obligation.liquidationLtv ? "text-amber-300" : "text-mint"
-                        }`}
-                      >
-                        {projectedLtv >= data.obligation.liquidationLtv
-                          ? "This would trigger a liquidation."
-                          : "Safe at this level."}
+                      <p className={`mt-1 text-sm ${roomAfterMove <= 0 ? "text-amber-300" : "text-mint"}`}>
+                        {roomAfterMove <= 0
+                          ? "This move could get the loan liquidated."
+                          : "The loan survives this move."}
                       </p>
                     </>
+                  ) : data.loans === null ? (
+                    <p className="mt-1 text-sm text-text-muted">
+                      Couldn&apos;t check Kamino just now. Try again in a minute.
+                    </p>
                   ) : (
                     <p className="mt-1 text-sm text-text-muted">
-                      No loan against these tokens on Kamino, so there&apos;s no liquidation risk to show.
+                      No loan on Kamino that a stock drop could liquidate, so there&apos;s no liquidation risk to
+                      show.
                     </p>
                   )}
                 </div>

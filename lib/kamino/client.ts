@@ -36,8 +36,9 @@ export function createKaminoRpc(rpcUrl: string) {
 /** Solana's average slot time; klend-sdk uses this for interest-accrual math. */
 const RECENT_SLOT_DURATION_MS = 450;
 
-let cachedMarket: KaminoMarket | null = null;
-let cachedAtMs = 0;
+// One cache entry per connection: the market keeps the connection it was
+// loaded with, so a backup connection must not reuse a failing one's market.
+const marketCache = new Map<string, { market: KaminoMarket; atMs: number }>();
 const MARKET_CACHE_TTL_MS = 30_000;
 
 /** Load (and briefly cache) the xStocks KaminoMarket, with reserves loaded. */
@@ -45,8 +46,9 @@ export async function loadXStocksMarket(
   rpcUrl: string
 ): Promise<KaminoMarket> {
   const now = Date.now();
-  if (cachedMarket && now - cachedAtMs < MARKET_CACHE_TTL_MS) {
-    return cachedMarket;
+  const cached = marketCache.get(rpcUrl);
+  if (cached && now - cached.atMs < MARKET_CACHE_TTL_MS) {
+    return cached.market;
   }
 
   const rpc = createKaminoRpc(rpcUrl);
@@ -63,7 +65,6 @@ export async function loadXStocksMarket(
     );
   }
 
-  cachedMarket = market;
-  cachedAtMs = now;
+  marketCache.set(rpcUrl, { market, atMs: now });
   return market;
 }

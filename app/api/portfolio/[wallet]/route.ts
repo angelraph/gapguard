@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { fetchToken2022Balances, xStockHoldingsFrom } from "@/lib/solana/holdings";
 import { fetchPreStocks } from "@/lib/prestocks/client";
-import { fetchObligationSummary } from "@/lib/kamino/portfolio";
+import { fetchLoanRisks, type LoanRisk } from "@/lib/kamino/portfolio";
+import { botUsername } from "@/lib/alerts/telegram";
 import { getMarketData } from "@/lib/marketData";
 
 export type PortfolioHolding = {
@@ -25,7 +26,8 @@ export type PortfolioHolding = {
  * GET /api/portfolio/[wallet]
  *
  * Returns a wallet's tokenized-stock holdings, valued at the current live
- * price, plus its Kamino lending position if it has one. Everything here
+ * price, plus its loans on Kamino's xStocks market (with how far its stocks
+ * can fall before each loan can be liquidated). Everything here
  * is a free, permissionless read — no paid API, no signup, works for any
  * wallet address without that wallet needing to do anything first.
  */
@@ -49,10 +51,18 @@ export async function GET(
 
   try {
     const connection = new Connection(rpcUrl, "confirmed");
-    const [balances, { source, stocks }, preStocks] = await Promise.all([
+    // A borrower's stock tokens sit inside Kamino, not in their wallet, so the
+    // loans are read separately and shown even when the wallet itself is empty.
+    // Everything runs side by side; a failed loan read just leaves loans null.
+    const [balances, { source, stocks }, preStocks, loans, alertsBot] = await Promise.all([
       fetchToken2022Balances(connection, walletPubkey),
       getMarketData(),
       fetchPreStocks().catch(() => []),
+      fetchLoanRisks(rpcUrl, wallet).catch((loanErr): LoanRisk[] | null => {
+        console.error("Kamino loan fetch failed:", loanErr);
+        return null;
+      }),
+      botUsername(),
     ]);
 
     const priceByTicker = new Map(stocks.map((s) => [s.ticker, s]));
@@ -95,14 +105,7 @@ export async function GET(
     // Leftover dust (fractions of a cent) only clutters the table with "0" rows.
     const holdings = [...stockHoldings, ...preIpoHoldings].filter((h) => h.valueUsd >= 0.01);
 
-    let obligation = null;
-    try {
-      obligation = await fetchObligationSummary(rpcUrl, wallet);
-    } catch (obligationErr) {
-      console.error("Kamino obligation fetch failed:", obligationErr);
-    }
-
-    return NextResponse.json({ source, holdings, obligation });
+    return NextResponse.json({ source, holdings, loans, alertsBot });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 502 });

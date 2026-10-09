@@ -15,8 +15,9 @@ GapGuard is a warning system for that gap.
 ## What it does
 
 1. **The Radar** (the home page). Shows, live, how much the on-chain price of each tokenized stock has drifted from the real stock's price, and whether the real market is open or closed right now. Also shows how much money is sitting as tokenized-stock collateral on Kamino's lending market, and the same gap for pre-IPO tokens (OpenAI, SpaceX and others), measured against the issuer's own mark.
-2. **Your risk** (`/portfolio`). Connect your wallet and it reads your actual tokenized stock and pre-IPO holdings straight from the chain, then lets you drag a slider to see what a price jump of any size would do to them, and, if you have a loan against these stocks on Kamino, how close that would put you to losing your collateral.
-3. **Gap Insurance** (`/protect`). Pay a small amount up front to protect yourself against a big price jump over a weekend. If the jump happens, you get paid back. If it doesn't, you don't. Built on a Meteora Dynamic Bonding Curve pool and settled from Pyth's real stock prices. It runs on mainnet (real money) and devnet (a free test network with a free faucet), and you pick one on the page.
+2. **Your risk** (`/portfolio`). Connect your wallet, or paste any public wallet address, and it reads your tokenized stock and pre-IPO holdings straight from the chain. If you've borrowed against tokenized stocks on Kamino, it tells you in plain words how far your stocks can fall before the loan can be liquidated, and roughly how much to repay or add to get back to safety. A slider shows what a price jump of any size would do.
+3. **Weekend loan alerts** (Telegram). Press "Get free Telegram alerts" on Your risk, or message the bot a wallet address. It messages you on Friday before the stock market closes for the weekend, whenever your loan's safety cushion falls under 15%, 10% or 5%, and on Monday before the market opens. Every message says what to do. It's read-only: it never asks you to connect or sign anything.
+4. **Gap Insurance** (`/protect`). Pay a small amount up front to protect yourself against a big price jump over a weekend. If the jump happens, you get paid back. If it doesn't, you don't. Built on a Meteora Dynamic Bonding Curve pool and settled from Pyth's real stock prices. It runs on mainnet (real money) and devnet (a free test network with a free faucet), and you pick one on the page.
 
 See [docs/submission.md](docs/submission.md) for the full write-up, including exactly what parts are fully automatic right now and what parts still need a person to run a script — we say this plainly instead of hiding it.
 
@@ -39,13 +40,28 @@ npm run dev
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
+Locally, the Telegram alerts work without any setup: messages are printed in the terminal instead of sent, and the subscriber list is kept in memory.
+
+## Turning on Telegram alerts
+
+Everything here is free. You do these once.
+
+1. **Make the bot.** In Telegram, message [@BotFather](https://t.me/BotFather), send `/newbot` and pick a name. It gives you a token. Never share it.
+2. **Make the database.** Sign up at [upstash.com](https://upstash.com), create a free Redis database, and copy its REST URL and REST token.
+3. **Add the settings on Vercel** (Project, Settings, Environment Variables): `TELEGRAM_BOT_TOKEN`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `CRON_SECRET` (any long random text you make up). Then redeploy.
+4. **Connect the bot to the site.** Open `https://<your-site>/api/alerts/setup?key=<CRON_SECRET>` once. It should answer with your bot's name.
+5. **Start the 5-minute check.** Sign up at [cron-job.org](https://cron-job.org) and add a job that opens `https://<your-site>/api/alerts/check?key=<CRON_SECRET>` every 5 minutes.
+
+`/api/health` then shows an `alerts` line. If the 5-minute check stops running, it turns red there within 15 minutes.
+
 ## What's in this folder
 
 ```
 app/                    the web pages and their backend routes
 lib/marketData/         picks live price data from Jupiter + Yahoo (or Pyth, once available)
 lib/pyth/               the original Pyth integration, built and ready, not currently active
-lib/kamino/             reads Kamino's tokenized-stock lending market
+lib/kamino/             reads Kamino's tokenized-stock lending market and each wallet's loans
+lib/alerts/             the Telegram alerts: when to warn, what to say, who's subscribed
 lib/meteora/            the Gap Insurance pool, quoting, and payout logic
 lib/solana/             reads a wallet's real tokenized-stock holdings
 lib/stocks/             the 8 stocks GapGuard tracks
