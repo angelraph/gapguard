@@ -1,29 +1,88 @@
 # GapGuard
 
-A free tool that watches tokenized stocks on Solana and warns people when the price could jump suddenly.
+**Your stock tokens trade all weekend. The real market doesn't. GapGuard warns you before Monday morning costs you money.**
 
 **Live:** https://gapguard-alpha.vercel.app
+**Telegram alerts:** [@GAPSTOCK_BOT](https://t.me/GAPSTOCK_BOT)
 
-Built for the Stocklana hackathon.
+Free. Read-only. You never connect a wallet or sign anything to check your risk.
 
-## The problem, in plain words
+## A Monday morning, without GapGuard
 
-You can buy a "tokenized" version of Apple or Tesla stock on Solana, and trade it any time, day or night, weekends included. But the real Apple and Tesla shares only trade during normal stock market hours. So when the real market is closed, nobody is watching whether the token's price still matches the real stock's price. If something big happens overnight (an earnings report, big news), the token can suddenly jump when the market reopens, and anyone holding it or using it as collateral for a loan gets no warning at all.
+Say you hold $4,000 of tokenized Tesla on Solana and you've borrowed $2,350 against it on Kamino. On Friday at 4pm the real stock market closes. Your token keeps trading all weekend, but the real Tesla price it's meant to follow stands still until Monday.
 
-GapGuard is a warning system for that gap.
+On Sunday night some big news breaks. Monday at 9:30am the real market opens, Tesla drops 10%, and your token drops with it in a few minutes. Kamino sees your collateral fall past its limit and closes part of your loan automatically. It sells some of your Tesla at a discount to pay back the debt. That's called a liquidation, and it's over before you've finished your coffee.
 
-## What it does
+Nobody warned you on Friday that a drop of just under 10% was your breaking point. Nobody told you on Sunday night. Nothing in the market does that today.
 
-1. **The Radar** (the home page). Shows, live, how much the on-chain price of each tokenized stock has drifted from the real stock's price, and whether the real market is open or closed right now. Also shows how much money is sitting as tokenized-stock collateral on Kamino's lending market, and the same gap for pre-IPO tokens (OpenAI, SpaceX and others), measured against the issuer's own mark.
-2. **Your risk** (`/portfolio`). Connect your wallet, or paste any public wallet address, and it reads your tokenized stock and pre-IPO holdings straight from the chain. If you've borrowed against tokenized stocks on Kamino, it tells you in plain words how far your stocks can fall before the loan can be liquidated, and roughly how much to repay or add to get back to safety. A slider shows what a price jump of any size would do.
-3. **Weekend loan alerts** (Telegram). Press "Get free Telegram alerts" on Your risk, or message the bot a wallet address. It messages you on Friday before the stock market closes for the weekend, whenever your loan's safety cushion falls under 15%, 10% or 5%, and on Monday before the market opens. Every message says what to do. It's read-only: it never asks you to connect or sign anything.
-4. **Gap Insurance** (`/protect`). Pay a small amount up front to protect yourself against a big price jump over a weekend. If the jump happens, you get paid back. If it doesn't, you don't. Built on a Meteora Dynamic Bonding Curve pool and settled from Pyth's real stock prices. It runs on mainnet (real money) and devnet (a free test network with a free faucet), and you pick one on the page.
+GapGuard does.
 
-See [docs/submission.md](docs/submission.md) for the full write-up, including exactly what parts are fully automatic right now and what parts still need a person to run a script — we say this plainly instead of hiding it.
+## The problem
 
-## Where the price data comes from
+Tokenized stocks trade at every hour of every day. The real stock market is open about 32 hours a week. For the other 135 hours, the token moves on its own while the real price is frozen.
 
-Real, live data, always, never sample or recorded numbers. The Radar runs on [Pyth Network](https://pyth.network): the real stock feed (`Equity.US.<TICKER>/USD`) against the on-chain xStock feed (`Crypto.<TICKER>X/USD`). If Pyth ever fails, it falls back automatically to [Jupiter's](https://jup.ag) token price API and [Yahoo Finance](https://finance.yahoo.com), both free with no signup. Pre-IPO prices come from [PreStocks'](https://prestocks.com) public API. The homepage always shows, in plain text, which source is live. See docs/submission.md for the full story.
+When the market reopens, the token has to snap back to the real price, sometimes in one jump. That jump is the gap.
+
+If you just hold the token, a gap is a nasty surprise. If you borrowed against it, a gap can liquidate you before you can do anything about it.
+
+## Who it's for
+
+These are real numbers from Kamino's xStocks lending market, read on October 8, 2026:
+
+1. **1,562 people** have open loans backed by tokenized stocks, with about **$5.4 million** borrowed.
+2. **108 of them**, with about **$560,000** borrowed, would be liquidated by a drop of 15% or less.
+3. **46** would be liquidated by a drop of 10% or less. **9** by a drop of under 5%.
+
+Tesla, MicroStrategy and Robinhood make moves like that over a weekend more often than most people think. These borrowers are who GapGuard is built for first.
+
+It's also for anyone holding tokenized stocks who wants to see, at a glance, how far their token has wandered from the real price while the market is shut.
+
+## What you get
+
+**Your breaking point, in one sentence.** Paste any Solana wallet on the [Your risk](https://gapguard-alpha.vercel.app/portfolio) page. If it has a loan on Kamino's xStocks market, GapGuard tells you something like "survives a drop of up to 12.7%", and exactly how much to repay or add to get back to a safe 25% cushion. It finds your loan even though your stocks sit inside Kamino and your wallet looks empty, which is where most tools go blind.
+
+**A warning on Telegram, while there's still time.** Send your wallet address to [@GAPSTOCK_BOT](https://t.me/GAPSTOCK_BOT), or press the button on Your risk. You'll hear from it:
+
+1. on Friday, an hour before the market closes for the weekend
+2. the moment your cushion falls under 15%, then 10%, then 5%
+3. on Monday, in the hour before the market opens
+
+Every message tells you what to do and links straight to Kamino. Each warning goes out once, so it never turns into noise. No app to install, no account to make.
+
+**The gap, live.** The home page shows how far each of 8 tokenized stocks (Apple, Alphabet, Nvidia, Tesla, Robinhood, MicroStrategy, SPY and QQQ) has drifted from the real stock right now, whether the real market is open, and how much money sits as collateral on Kamino. It does the same for pre-IPO tokens like OpenAI and SpaceX, measured against the issuer's own price.
+
+**Weekend Gap Insurance, as a working demo.** Pay a small fee before the weekend. If the stock moves more than 3% by Monday's open, you get paid. It has already run on mainnet with real money: over the weekend of September 25 to 28, Tesla moved 1.04%, under the trigger, so no payout. The result is written on-chain with Pyth's prices so anyone can check it. Real insurance needs money set aside to pay claims, so it stays a demo for now and the free warnings come first.
+
+## Why GapGuard is different
+
+1. **It uses the same numbers Kamino uses.** Kamino decides liquidations with its own price feed. GapGuard reads that same feed, so "survives a drop of up to 12.7%" is the line that actually matters, not a guess from a stock chart.
+2. **It sees loans other tools miss.** A borrower's stocks are held inside Kamino, so their wallet looks empty. GapGuard reads the loan itself, for every loan type, including leveraged ones.
+3. **It warns before the gap, not after.** Price alerts tell you something already happened. GapGuard is built around the weekend: it tells you on Friday what Monday could do, and keeps watching in between.
+4. **It tells you what to do.** Every warning comes with a number: repay this much, or add this much.
+5. **It costs nothing and asks for nothing.** No sign-up, no wallet connection, no fees. It reads public data and sends you a message.
+
+## The vision
+
+Tokenized stocks are going to get bigger, and they'll keep trading while the real market sleeps. Every one of them carries this gap. GapGuard wants to be the thing standing in it: the safety layer that tells people, plainly and in time, what a closed market could do to their money.
+
+Where it goes from here:
+
+1. **Today:** free risk checks and Telegram warnings for everyone borrowing against tokenized stocks on Kamino.
+2. **Next:** more lending apps, more stocks, warnings before market holidays as well as weekends, and GapGuard's warning shown right inside lending apps, where borrowers already are.
+3. **Later:** once people trust the warnings, real weekend protection for the same people, so they can choose to cover the risk instead of just watching it.
+
+The warnings stay free. That part isn't up for negotiation.
+
+## Where the data comes from
+
+Always real and live, never sample numbers.
+
+1. **Loans and breaking points** come straight from Kamino's lending market on Solana, priced with the same feed Kamino uses for liquidations.
+2. **The gap on the home page** compares the token's live price on [Jupiter](https://jup.ag) with the real stock price from [Yahoo Finance](https://finance.yahoo.com), both free. A full [Pyth Network](https://pyth.network) integration is built and switches back on with one setting once Pyth's stock data is available to the project. The home page always says which source is live.
+3. **Pre-IPO prices** come from [PreStocks'](https://prestocks.com) public API. If PreStocks goes down for a moment, GapGuard shows the last good prices and says how old they are.
+4. **Gap Insurance results** use Pyth's real stock prices, written on-chain.
+
+Built for the Stocklana hackathon. The full write-up is in [docs/submission.md](docs/submission.md).
 
 ## Running it yourself
 
@@ -31,7 +90,7 @@ Real, live data, always, never sample or recorded numbers. The Radar runs on [Py
 cp .env.example .env.local
 ```
 
-Then open `.env.local` and fill in `SOLANA_RPC_URL` (a Solana RPC endpoint, the public one works for trying it out). Add a `PYTH_API_KEY` to run on Pyth; without one the app uses the free fallback.
+Then open `.env.local` and fill in `SOLANA_RPC_URL` (a Solana RPC endpoint, the public one works for trying it out). Add a `PYTH_API_KEY` to run on Pyth; without one the app uses the free source.
 
 ```bash
 npm install
@@ -48,7 +107,7 @@ Everything here is free. You do these once.
 
 1. **Make the bot.** In Telegram, message [@BotFather](https://t.me/BotFather), send `/newbot` and pick a name. It gives you a token. Never share it.
 2. **Make the database.** Sign up at [upstash.com](https://upstash.com), create a free Redis database, and copy its REST URL and REST token.
-3. **Add the settings on Vercel** (Project, Settings, Environment Variables): `TELEGRAM_BOT_TOKEN`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `CRON_SECRET` (any long random text you make up). Then redeploy.
+3. **Add the settings on Vercel** (Project, Settings, Environment Variables): `TELEGRAM_BOT_TOKEN`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and `CRON_SECRET` (any long random text made of letters and numbers). Then redeploy.
 4. **Connect the bot to the site.** Open `https://<your-site>/api/alerts/setup?key=<CRON_SECRET>` once. It should answer with your bot's name.
 5. **Start the 5-minute check.** Sign up at [cron-job.org](https://cron-job.org) and add a job that opens `https://<your-site>/api/alerts/check?key=<CRON_SECRET>` every 5 minutes.
 
@@ -58,18 +117,24 @@ Everything here is free. You do these once.
 
 ```
 app/                    the web pages and their backend routes
-lib/marketData/         picks live price data from Jupiter + Yahoo (or Pyth, once available)
-lib/pyth/               the original Pyth integration, built and ready, not currently active
-lib/kamino/             reads Kamino's tokenized-stock lending market and each wallet's loans
+lib/kamino/             reads Kamino's lending market and works out each loan's breaking point
 lib/alerts/             the Telegram alerts: when to warn, what to say, who's subscribed
-lib/meteora/            the Gap Insurance pool, quoting, and payout logic
-lib/solana/             reads a wallet's real tokenized-stock holdings
+lib/marketData/         live prices from Jupiter + Yahoo (or Pyth, when available)
+lib/pyth/               the Pyth integration, built and ready
+lib/prestocks/          pre-IPO prices, with a fallback for PreStocks outages
+lib/meteora/            the Gap Insurance pool, quoting and payout logic
+lib/solana/             reads a wallet's tokenized-stock holdings
 lib/stocks/             the 8 stocks GapGuard tracks
 scripts/                one-off setup and settlement scripts
-scripts/devnet/         free test-network versions of those scripts, for trying things safely
+scripts/devnet/         free test-network versions of those scripts
 docs/submission.md      the full write-up for hackathon judges
 ```
 
-## Current status
+## Where things stand
 
-The app is live and working end to end: real Pyth prices, a wallet connected risk view, and a real buy, settlement and payout flow for Gap Insurance, proven with on-chain transactions listed in docs/submission.md. Settlement is run by a person with a script (it reads Pyth and writes the result on-chain), and payouts come from a builder controlled wallet, not an audited escrow contract. This is a hackathon project.
+Live and working end to end:
+
+1. Risk checks and Telegram warnings run on real Kamino loans, checked every 5 minutes. [`/api/health`](https://gapguard-alpha.vercel.app/api/health) shows, at any moment, whether prices, the pre-IPO feed, both insurance pools and the alert checks are all working.
+2. Gap Insurance has a real buy, settlement and payout flow, proven with on-chain transactions listed in docs/submission.md. Settlement is run by a person with a script, and payouts come from a wallet the builder controls rather than an audited contract. That's why it's a demo, and we say so.
+
+GapGuard started as a hackathon project. It's being built into a free tool that people with real money on the line can rely on.
