@@ -14,6 +14,8 @@
  * next updated, holders on the wrong side of a big gap take the hit at once.
  */
 
+import { getCached, setCached } from "../alerts/store";
+
 const PRESTOCKS_API_URL = "https://prestocks.com/api/prestocks";
 
 type RawPreStock = {
@@ -44,16 +46,58 @@ export type PreStock = {
   supply: number;
 };
 
+/**
+ * PreStocks' API sometimes answers with an empty or price-less list for a
+ * minute or two. So: retry once, never cache a bad answer, and fall back to
+ * the last good list (kept in memory and in the shared store, so a freshly
+ * started server has it too) for up to 6 hours.
+ */
+const FRESH_MS = 30_000;
+const STALE_LIMIT_MS = 6 * 60 * 60 * 1000;
+const CACHE_NAME = "prestocks";
+
+let lastGood: { at: number; value: PreStock[] } | null = null;
+
+/** How old the prices fetchPreStocks last returned are, in ms (0 if none yet). */
+export function preStocksAgeMs(): number {
+  return lastGood ? Date.now() - lastGood.at : 0;
+}
+
 export async function fetchPreStocks(): Promise<PreStock[]> {
-  const res = await fetch(PRESTOCKS_API_URL, {
-    next: { revalidate: 30 },
-  });
+  if (lastGood && Date.now() - lastGood.at < FRESH_MS) return lastGood.value;
+
+  let failure: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const list = await fetchOnce();
+      lastGood = { at: Date.now(), value: list };
+      setCached(CACHE_NAME, list).catch(() => {});
+      return list;
+    } catch (err) {
+      failure = err;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+
+  if (!lastGood) {
+    lastGood = await getCached<PreStock[]>(CACHE_NAME).catch(() => null);
+  }
+  if (lastGood && Date.now() - lastGood.at < STALE_LIMIT_MS) {
+    console.warn("PreStocks unavailable, using the last good prices:", failure);
+    return lastGood.value;
+  }
+  throw failure;
+}
+
+async function fetchOnce(): Promise<PreStock[]> {
+  const res = await fetch(PRESTOCKS_API_URL, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
   if (!res.ok) {
     throw new Error(`PreStocks API failed (${res.status})`);
   }
-  const raw: RawPreStock[] = await res.json();
+  const raw = (await res.json()) as RawPreStock[];
+  if (!Array.isArray(raw)) throw new Error("PreStocks API returned an unexpected answer");
 
-  return raw
+  const list = raw
     .filter((p) => p.markPrice > 0 && p.tokenPrice > 0)
     .map((p) => ({
       symbol: p.symbol,
@@ -68,4 +112,6 @@ export async function fetchPreStocks(): Promise<PreStock[]> {
       impliedValuationUsd: p.impliedValuation,
       supply: p.supply,
     }));
+  if (list.length === 0) throw new Error(`PreStocks API returned no priced tokens (${raw.length} rows)`);
+  return list;
 }

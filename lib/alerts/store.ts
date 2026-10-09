@@ -136,6 +136,15 @@ export async function setState(chatId: string, wallet: string, state: AlertState
   await setJson(`${P}state:${chatId}:${wallet}`, state);
 }
 
+/** A small shared cache for last-known-good data (e.g. PreStocks prices). */
+export async function getCached<T>(name: string): Promise<{ at: number; value: T } | null> {
+  return getJson<{ at: number; value: T }>(`${P}cache:${name}`);
+}
+
+export async function setCached(name: string, value: unknown): Promise<void> {
+  await setJson(`${P}cache:${name}`, { at: Date.now(), value });
+}
+
 export async function getLastRun(): Promise<RunSummary | null> {
   return getJson<RunSummary>(`${P}lastRun`);
 }

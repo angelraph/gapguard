@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Connection } from "@solana/web3.js";
 import { getMarketData } from "@/lib/marketData";
-import { fetchPreStocks } from "@/lib/prestocks/client";
+import { fetchPreStocks, preStocksAgeMs } from "@/lib/prestocks/client";
 import { fetchPoolState } from "@/lib/meteora/quote";
 import { getLastRun } from "@/lib/alerts/store";
 import { botToken, botUsername } from "@/lib/alerts/telegram";
@@ -46,7 +46,12 @@ export async function GET() {
     check(async () => {
       const list = await fetchPreStocks();
       if (list.length === 0) throw new Error("no tokens returned");
-      return `${list.length} pre-IPO tokens`;
+      // A short PreStocks outage is covered by the last good prices; a long one is a problem.
+      const ageMin = Math.round(preStocksAgeMs() / 60000);
+      if (ageMin > 30) throw new Error(`PreStocks down, showing prices from ${ageMin} minutes ago`);
+      return ageMin >= 1
+        ? `${list.length} pre-IPO tokens (PreStocks briefly down, last good prices from ${ageMin} min ago)`
+        : `${list.length} pre-IPO tokens`;
     }),
     check(async () => {
       if (!mainnetPool || !process.env.SOLANA_RPC_URL) throw new Error("mainnet pool not configured");
